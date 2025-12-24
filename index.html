@@ -13,42 +13,48 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; position: relative; }
         
-        /* --- ヘッダー・カレンダーボタンのカスタマイズ --- */
+        /* --- ヘッダー要素を強制的に1行で横並びにする --- */
         .fc-header-toolbar { 
             display: flex !important; 
             justify-content: center !important; 
-            align-items: center !important; 
-            gap: 5px !important; 
+            align-items: center !important;
+            flex-wrap: nowrap !important; /* 折り返し禁止 */
+            gap: 4px !important; 
             margin-bottom: 15px !important;
         }
-        .fc-toolbar-chunk { display: flex !important; align-items: center !important; gap: 4px !important; }
+        .fc-toolbar-chunk { 
+            display: flex !important; 
+            align-items: center !important; 
+            gap: 4px !important; 
+        }
 
-        /* 年月ボタン（表示切替） */
+        /* 年月ボタン：横幅を維持しつつスッキリさせる */
         .fc-toolbar-title { 
-            font-size: 1rem !important; 
+            font-size: 0.95rem !important; 
             white-space: nowrap !important; 
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 5px 8px;
             border-radius: 6px;
             background: #fff;
             border: 1px solid #ddd;
-            user-select: none;
             font-weight: bold;
+            display: inline-flex;
+            align-items: center;
         }
-        .fc-toolbar-title::after { content: " 🔄"; font-size: 0.7rem; opacity: 0.5; }
+        .fc-toolbar-title::after { content: "🔄"; font-size: 0.7rem; margin-left: 4px; opacity: 0.5; }
 
-        /* 移動ボタン（＜ ＞ today）を小さくする */
+        /* 移動ボタン群をさらに小さく調整 */
         .fc-button {
-            padding: 2px 6px !important;
-            font-size: 0.75rem !important;
-            height: auto !important;
+            padding: 2px 5px !important;
+            font-size: 0.7rem !important;
+            height: 28px !important;
         }
         .fc-today-button {
-            font-weight: bold !important;
-            text-transform: capitalize !important;
+            font-size: 0.65rem !important;
+            padding: 2px 4px !important;
         }
 
-        /* 既存のレイアウトスタイル */
+        /* 既存デザイン */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 5px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
         #loginBtn.logged-in { background: #e3f2fd; color: var(--primary-color); }
@@ -129,7 +135,7 @@
                 titleFormat: { year: 'numeric', month: 'long' },
                 headerToolbar: {
                     left: '',
-                    center: 'title,prev,next,today', // この順番で並べる
+                    center: 'title,prev,next,today', // ここを中央1か所に集中させる
                     right: ''
                 },
                 views: { twoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
