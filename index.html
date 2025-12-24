@@ -13,34 +13,42 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; position: relative; }
         
-        /* ヘッダーカスタマイズ：すべて中央寄せ */
-        .fc-header-toolbar { display: flex !important; justify-content: center !important; align-items: center !important; gap: 10px !important; }
-        .fc-toolbar-chunk { display: flex !important; align-items: center !important; justify-content: center !important; gap: 8px !important; }
-        
-        /* 年月表示をボタン化 */
+        /* --- ヘッダー・カレンダーボタンのカスタマイズ --- */
+        .fc-header-toolbar { 
+            display: flex !important; 
+            justify-content: center !important; 
+            align-items: center !important; 
+            gap: 5px !important; 
+            margin-bottom: 15px !important;
+        }
+        .fc-toolbar-chunk { display: flex !important; align-items: center !important; gap: 4px !important; }
+
+        /* 年月ボタン（表示切替） */
         .fc-toolbar-title { 
-            font-size: 1.1rem !important; 
+            font-size: 1rem !important; 
             white-space: nowrap !important; 
-            margin: 0 !important;
-            cursor: pointer; /* マウスを乗せると指マークに */
-            padding: 5px 10px;
+            cursor: pointer;
+            padding: 4px 8px;
             border-radius: 6px;
-            background: #f8f9fa;
+            background: #fff;
             border: 1px solid #ddd;
             user-select: none;
-            transition: background 0.2s;
+            font-weight: bold;
         }
-        .fc-toolbar-title:active {
-            background: #e9ecef;
-            transform: scale(0.98);
+        .fc-toolbar-title::after { content: " 🔄"; font-size: 0.7rem; opacity: 0.5; }
+
+        /* 移動ボタン（＜ ＞ today）を小さくする */
+        .fc-button {
+            padding: 2px 6px !important;
+            font-size: 0.75rem !important;
+            height: auto !important;
         }
-        .fc-toolbar-title::after {
-            content: " 🔄"; /* 切り替え可能であることを示すアイコン */
-            font-size: 0.8rem;
-            opacity: 0.6;
+        .fc-today-button {
+            font-weight: bold !important;
+            text-transform: capitalize !important;
         }
 
-        /* 既存スタイル */
+        /* 既存のレイアウトスタイル */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 5px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
         #loginBtn.logged-in { background: #e3f2fd; color: var(--primary-color); }
@@ -48,7 +56,7 @@
         .status-item { flex: 1; text-align: center; }
         .status-value { display: block; font-size: 1.6rem; font-weight: bold; color: var(--primary-color); }
         .status-label { font-size: 0.7rem; color: #777; font-weight: bold; }
-        h1 { font-size: 1.3rem; text-align: center; color: var(--primary-color); margin: 10px 0 20px; }
+        h1 { font-size: 1.3rem; text-align: center; color: var(--primary-color); margin: 10px 0 15px; }
         h2 { font-size: 1rem; border-left: 5px solid var(--primary-color); padding-left: 10px; margin-top: 25px; margin-bottom: 12px; line-height: 1.2; }
         .input-area { display: flex; gap: 8px; margin-bottom: 15px; }
         input[type="text"] { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
@@ -121,28 +129,20 @@
                 titleFormat: { year: 'numeric', month: 'long' },
                 headerToolbar: {
                     left: '',
-                    center: 'title,prev,next,today', 
+                    center: 'title,prev,next,today', // この順番で並べる
                     right: ''
                 },
                 views: { twoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
                 events: getCalendarEvents(),
                 eventClick: function(info) { editTaskName(info.event.extendedProps.taskId); },
-                // 描画が完了したら、年月タイトルにクリックイベントを付与する
-                datesSet: function() {
-                    setupTitleClick();
-                }
+                datesSet: function() { setupTitleClick(); }
             });
             calendar.render();
         }
 
-        // --- 年月表示をクリック可能にする設定 ---
         function setupTitleClick() {
             const titleEl = document.querySelector('.fc-toolbar-title');
-            if (!titleEl) return;
-
-            // 既にイベントが付与されている場合はスキップ
-            if (titleEl.getAttribute('data-click-setup')) return;
-
+            if (!titleEl || titleEl.getAttribute('data-click-setup')) return;
             titleEl.onclick = function() {
                 currentMode = (currentMode + 1) % 3;
                 if (currentMode === 0) calendar.changeView('dayGridMonth');
@@ -152,7 +152,6 @@
             titleEl.setAttribute('data-click-setup', 'true');
         }
 
-        // --- データ管理ロジック ---
         function saveAllData(tasks, stats) {
             localStorage.setItem('myTasks', JSON.stringify(tasks));
             localStorage.setItem('myStats', JSON.stringify(stats));
