@@ -22,25 +22,24 @@
         h1 { font-size: 1.3rem; text-align: center; color: var(--primary-color); margin: 10px 0 20px; }
         h2 { font-size: 1rem; border-left: 5px solid var(--primary-color); padding-left: 10px; margin-top: 25px; margin-bottom: 12px; line-height: 1.2; }
         
-        /* 表示切替ボタンのスタイル */
-        .view-controls { display: flex; justify-content: center; gap: 5px; margin-bottom: 10px; }
-        .view-btn { background: #fff; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 5px 10px; border-radius: 5px; font-size: 0.75rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .view-btn:hover { background: #f0f7ff; }
-        .view-btn.active { background: var(--primary-color); color: #fff; }
-
         .input-area { display: flex; gap: 8px; margin-bottom: 15px; }
         input[type="text"] { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
         button.add-btn { background-color: var(--primary-color); color: white; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
         .task-item { background: #fff; border: 1px solid #eee; border-left: 5px solid var(--primary-color); padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; }
         .task-item span { font-weight: 500; font-size: 0.9rem; flex: 1; padding-right: 10px; }
         .task-item small { color: #888; margin-left: 5px; font-weight: normal; }
         .btn-done { background-color: var(--success-color); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; min-width: 80px; }
         .btn-delete { background-color: #95a5a6; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 0.75rem; }
-        #calendar { margin-top: 5px; background: white; font-size: 0.75rem; }
-        .fc-toolbar-title { font-size: 1.1rem !important; font-weight: bold; border-left: none !important; padding-left: 0 !important; margin: 0 auto !important; text-align: center; }
-        .fc-toolbar-chunk:nth-child(1) { flex: 1; } 
-        .fc-toolbar-chunk:nth-child(3) { flex: 1; display: flex; justify-content: flex-end; gap: 2px; }
-        .fc .fc-button { padding: 4px 6px !important; font-size: 0.75rem !important; }
+        
+        #calendar { margin-top: 10px; background: white; font-size: 0.75rem; }
+        
+        /* ツールバーの見た目調整 */
+        .fc-toolbar-title { font-size: 1.0rem !important; font-weight: bold; margin-right: 10px !important; }
+        .fc-toolbar { flex-wrap: wrap; gap: 5px; }
+        .fc-button-primary { background-color: var(--primary-color) !important; border-color: var(--primary-color) !important; font-size: 0.7rem !important; }
+        .fc-button-active { background-color: #2c3e50 !important; }
+        
         .hint { font-size: 0.7rem; color: #999; text-align: center; margin-top: 10px; }
     </style>
 </head>
@@ -48,23 +47,21 @@
     <div class="container">
         <div class="auth-header"><button id="loginBtn" onclick="handleAuth()">☁️ ログイン</button></div>
         <h1>復習スケジューラー</h1>
+        
         <div class="status-panel">
             <div class="status-item"><span class="status-value" id="streakCount">0</span><span class="status-label">🔥 継続日数</span></div>
             <div class="status-item"><span class="status-value" id="totalDone">0</span><span class="status-label">🏆 累計完了</span></div>
         </div>
+
         <div class="input-area">
             <input type="text" id="taskInput" placeholder="勉強した内容を入力してね">
             <button class="add-btn" onclick="addTask()">登録</button>
         </div>
+
         <h2>今日の復習</h2>
         <div id="todayList"></div>
-        
+
         <h2>カレンダー</h2>
-        <div class="view-controls">
-            <button class="view-btn active" id="btnMonth" onclick="changeView('dayGridMonth', 'btnMonth')">1ヶ月</button>
-            <button class="view-btn" id="btnTwoWeeks" onclick="changeView('twoWeeks', 'btnTwoWeeks')">2週間</button>
-            <button class="view-btn" id="btnWeek" onclick="changeView('dayGridWeek', 'btnWeek')">1週間</button>
-        </div>
         <div id="calendar"></div>
         
         <p class="hint">予定をタップで名前編集</p>
@@ -109,7 +106,7 @@
                     await auth.signInWithPopup(provider);
                 }
             } catch (error) {
-                alert("ログイン失敗: " + error.message);
+                alert("ログイン失敗");
             }
         }
 
@@ -118,11 +115,21 @@
         function initCalendar() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth', 
-                locale: 'ja', 
-                aspectRatio: 1.2,
-                headerToolbar: { left: '', center: 'title', right: 'prev,next today' },
-                // 2週間表示用のカスタムビュー設定
+                initialView: 'dayGridMonth',
+                locale: 'ja',
+                aspectRatio: 1.1,
+                // カスタムボタンの定義
+                customButtons: {
+                    viewMonth: { text: '1ヶ月', click: function() { calendar.changeView('dayGridMonth'); } },
+                    view2Weeks: { text: '2週間', click: function() { calendar.changeView('twoWeeks'); } },
+                    viewWeek: { text: '1週間', click: function() { calendar.changeView('dayGridWeek'); } }
+                },
+                // ヘッダーの配置設定: titleの直後にカスタムボタンを配置
+                headerToolbar: {
+                    left: 'title',
+                    center: 'viewMonth,view2Weeks,viewWeek',
+                    right: 'prev,next today'
+                },
                 views: {
                     twoWeeks: {
                         type: 'dayGrid',
@@ -136,14 +143,7 @@
             calendar.render();
         }
 
-        // 追加機能：カレンダーの表示切替
-        function changeView(viewName, btnId) {
-            calendar.changeView(viewName);
-            // ボタンの活性状態を更新
-            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(btnId).classList.add('active');
-        }
-
+        // --- 以下、既存のデータ処理ロジック ---
         function saveAllData(tasks, stats) {
             localStorage.setItem('myTasks', JSON.stringify(tasks));
             localStorage.setItem('myStats', JSON.stringify(stats));
@@ -225,7 +225,6 @@
             const allTasksList = document.getElementById('allTasksList');
             const tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
             const today = getTodayStr();
-            
             todayList.innerHTML = "";
             tasks.forEach(t => {
                 const totalSteps = 5;
@@ -238,14 +237,12 @@
                 }
             });
             if(todayList.innerHTML === "") todayList.innerHTML = '<p style="text-align:center; color:#888; font-size:0.9rem;">今日の復習はありません。</p>';
-            
             allTasksList.innerHTML = "";
             tasks.forEach(t => {
                 const div = document.createElement('div'); div.className = 'task-item'; div.style.borderLeftColor = "#ccc";
                 div.innerHTML = `<span>${t.name}</span> <button class="btn-delete" onclick="deleteFullTask(${t.id})">削除</button>`;
                 allTasksList.appendChild(div);
             });
-            updateStats();
         }
 
         function getCalendarEvents() {
@@ -255,13 +252,7 @@
                 const totalSteps = 5;
                 const doneSteps = totalSteps - task.reviews.length;
                 task.reviews.forEach((date, index) => {
-                    events.push({ 
-                        title: `${task.name} (${doneSteps + index + 1}回目)`, 
-                        start: date, 
-                        extendedProps: { taskId: task.id }, 
-                        backgroundColor: '#4a90e2', 
-                        borderColor: '#4a90e2' 
-                    });
+                    events.push({ title: `${task.name} (${doneSteps + index + 1}回目)`, start: date, extendedProps: { taskId: task.id }, backgroundColor: '#4a90e2', borderColor: '#4a90e2' });
                 });
             });
             return events;
