@@ -13,12 +13,12 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; position: relative; }
         
-        /* --- ヘッダー要素を強制的に1行で横並びにする --- */
+        /* --- ヘッダー要素を1行で横並びにする --- */
         .fc-header-toolbar { 
             display: flex !important; 
             justify-content: center !important; 
             align-items: center !important;
-            flex-wrap: nowrap !important; /* 折り返し禁止 */
+            flex-wrap: nowrap !important; 
             gap: 4px !important; 
             margin-bottom: 15px !important;
         }
@@ -33,17 +33,19 @@
             font-size: 0.95rem !important; 
             white-space: nowrap !important; 
             cursor: pointer;
-            padding: 5px 8px;
+            padding: 4px 8px;
             border-radius: 6px;
             background: #fff;
             border: 1px solid #ddd;
             font-weight: bold;
             display: inline-flex;
             align-items: center;
+            user-select: none;
         }
         .fc-toolbar-title::after { content: "🔄"; font-size: 0.7rem; margin-left: 4px; opacity: 0.5; }
+        .fc-toolbar-title:active { background: #f0f0f0; }
 
-        /* 移動ボタン群をさらに小さく調整 */
+        /* 移動ボタン群を小さく調整 */
         .fc-button {
             padding: 2px 5px !important;
             font-size: 0.7rem !important;
@@ -71,6 +73,7 @@
         .btn-done { background-color: var(--success-color); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; min-width: 80px; }
         .btn-delete { background-color: #95a5a6; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 0.75rem; }
         #calendar { margin-top: 10px; background: white; font-size: 0.75rem; }
+        .hint { font-size: 0.7rem; color: #999; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -89,6 +92,7 @@
         <div id="todayList"></div>
         <h2>カレンダー</h2>
         <div id="calendar"></div>
+        <p class="hint">予定をタップで名前編集</p>
         <div style="margin-top: 30px; opacity: 0.7;">
             <h2>スケジュール一括削除</h2>
             <div id="allTasksList"></div>
@@ -96,6 +100,7 @@
     </div>
 
     <script>
+        // --- 設定・認証 ---
         const firebaseConfig = {
             apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
             authDomain: "my-study-app-6a0b6.firebaseapp.com",
@@ -110,7 +115,7 @@
         const db = firebase.firestore();
         let currentUser = null;
         let calendar;
-        let currentMode = 0;
+        let currentMode = 0; // 0:月, 1:2週間, 2:1週間
 
         auth.onAuthStateChanged(user => {
             currentUser = user;
@@ -135,12 +140,13 @@
                 titleFormat: { year: 'numeric', month: 'long' },
                 headerToolbar: {
                     left: '',
-                    center: 'title,prev,next,today', // ここを中央1か所に集中させる
+                    center: 'title,prev,next,today', // ここで横並びの順序を指定
                     right: ''
                 },
                 views: { twoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
                 events: getCalendarEvents(),
                 eventClick: function(info) { editTaskName(info.event.extendedProps.taskId); },
+                // 描画・更新のたびに年月タイトルにクリックイベントを設定
                 datesSet: function() { setupTitleClick(); }
             });
             calendar.render();
@@ -148,16 +154,17 @@
 
         function setupTitleClick() {
             const titleEl = document.querySelector('.fc-toolbar-title');
-            if (!titleEl || titleEl.getAttribute('data-click-setup')) return;
+            if (!titleEl) return;
+            // 重複登録を防ぐ
             titleEl.onclick = function() {
                 currentMode = (currentMode + 1) % 3;
                 if (currentMode === 0) calendar.changeView('dayGridMonth');
                 else if (currentMode === 1) calendar.changeView('twoWeeks');
                 else calendar.changeView('dayGridWeek');
             };
-            titleEl.setAttribute('data-click-setup', 'true');
         }
 
+        // --- データ処理 ---
         function saveAllData(tasks, stats) {
             localStorage.setItem('myTasks', JSON.stringify(tasks));
             localStorage.setItem('myStats', JSON.stringify(stats));
@@ -281,3 +288,4 @@
     </script>
 </body>
 </html>
+
