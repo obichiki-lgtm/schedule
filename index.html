@@ -22,32 +22,29 @@
         h1 { font-size: 1.3rem; text-align: center; color: var(--primary-color); margin: 10px 0 20px; }
         h2 { font-size: 1rem; border-left: 5px solid var(--primary-color); padding-left: 10px; margin-top: 25px; margin-bottom: 12px; line-height: 1.2; }
         
-        /* --- カレンダー上部のレイアウト調整 --- */
-        .fc-toolbar-chunk:first-child { display: flex !important; align-items: center !important; }
-        .fc-toolbar-title { margin-right: 8px !important; font-size: 1.1rem !important; white-space: nowrap !important; }
-        
-        /* 🔄 ボタンのデザイン（年月のすぐ右に配置） */
+        /* カレンダーヘッダーのカスタマイズ：中央寄せ */
+        .fc-header-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; }
+        .fc-toolbar-chunk:nth-child(2) { display: flex !important; align-items: center !important; justify-content: center !important; gap: 8px; }
+        .fc-toolbar-title { font-size: 1.1rem !important; white-space: nowrap !important; margin: 0 !important; }
+
+        /* 🔄 ボタンのスタイル */
         #viewCycleBtn {
-            background-color: #f8f9fa;
+            background: #f0f0f0;
             border: 1px solid #ccc;
-            padding: 2px 6px;
             border-radius: 4px;
-            font-size: 1.1rem;
+            padding: 2px 6px;
+            font-size: 1rem;
             cursor: pointer;
-            display: inline-flex;
+            height: 28px;
+            display: flex;
             align-items: center;
             justify-content: center;
-            line-height: 1;
-            height: 28px;
-            transition: 0.2s;
         }
-        #viewCycleBtn:active { background-color: #ddd; }
 
         .input-area { display: flex; gap: 8px; margin-bottom: 15px; }
         input[type="text"] { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
         button.add-btn { background-color: var(--primary-color); color: white; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .task-item { background: #fff; border: 1px solid #eee; border-left: 5px solid var(--primary-color); padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; }
-        .task-item span { font-weight: 500; font-size: 0.9rem; flex: 1; padding-right: 10px; }
         .btn-done { background-color: var(--success-color); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; min-width: 80px; }
         .btn-delete { background-color: #95a5a6; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 0.75rem; }
         #calendar { margin-top: 10px; background: white; font-size: 0.75rem; }
@@ -92,7 +89,7 @@
         const db = firebase.firestore();
         let currentUser = null;
         let calendar;
-        let currentMode = 0; // 0: 1ヶ月, 1: 2週間, 2: 1週間
+        let currentMode = 0; // 0: month, 1: 2weeks, 2: week
 
         auth.onAuthStateChanged(user => {
             currentUser = user;
@@ -114,29 +111,25 @@
                 initialView: 'dayGridMonth',
                 locale: 'ja',
                 aspectRatio: 1.2,
-                // 年月を「2025年12月」形式で固定
+                // タイトルを常に「年 月」で固定
                 titleFormat: { year: 'numeric', month: 'long' },
-                headerToolbar: { left: 'title', center: '', right: 'prev,next today' },
-                views: {
-                    twoWeeks: { type: 'dayGrid', duration: { weeks: 2 } }
+                headerToolbar: {
+                    left: 'prev,next',
+                    center: 'title', // タイトルを中央へ
+                    right: 'today'
                 },
+                views: { twoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
                 events: getCalendarEvents(),
                 eventClick: function(info) { editTaskName(info.event.extendedProps.taskId); },
-                // 描画されるたびにボタンを再配置する
-                datesSet: function() {
-                    insertCycleButton();
-                }
+                // 描画のたびにボタンをタイトルの横に配置
+                datesSet: function() { insertCycleButton(); }
             });
             calendar.render();
         }
 
-        // --- 🔄 ボタンを年月の右に挿入する関数 ---
         function insertCycleButton() {
             const titleEl = document.querySelector('.fc-toolbar-title');
-            if (!titleEl) return;
-
-            // 二重作成防止
-            if (document.getElementById('viewCycleBtn')) return;
+            if (!titleEl || document.getElementById('viewCycleBtn')) return;
 
             const btn = document.createElement('button');
             btn.id = 'viewCycleBtn';
@@ -147,11 +140,11 @@
                 else if (currentMode === 1) calendar.changeView('twoWeeks');
                 else calendar.changeView('dayGridWeek');
             };
-            
-            // 年月表示のすぐ後ろに差し込む
+            // タイトルのすぐ後ろ（右側）に挿入
             titleEl.after(btn);
         }
 
+        // --- データ管理ロジック ---
         function saveAllData(tasks, stats) {
             localStorage.setItem('myTasks', JSON.stringify(tasks));
             localStorage.setItem('myStats', JSON.stringify(stats));
