@@ -13,58 +13,55 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; position: relative; }
         
-        /* --- カレンダーヘッダーの強制横並び設定 --- */
+        /* --- ヘッダー・レイアウト固定 --- */
         .fc .fc-toolbar {
             display: flex !important;
-            justify-content: center !important;
             align-items: center !important;
-            flex-wrap: nowrap !important; /* 絶対に折り返さない */
-            gap: 4px !important;
-            margin-bottom: 1.5em !important;
+            justify-content: flex-start !important; /* 左詰めベースにして位置を計算 */
+            position: relative !important;
+            height: 40px !important;
+            margin-bottom: 20px !important;
         }
 
-        /* 塊を1つに集約 */
-        .fc-toolbar-chunk {
-            display: flex !important;
-            align-items: center !important;
-            gap: 4px !important;
-        }
-
-        /* 年月ボタンのデザイン */
+        /* 1. 年月を親要素の「真ん中」に完全に固定 */
         .fc-toolbar-title {
-            font-size: 0.9rem !important;
+            position: absolute !important;
+            left: 50% !important;
+            top: 50% !important;
+            transform: translate(-50%, -50%) !important; /* 常に中心 */
+            font-size: 0.95rem !important;
             white-space: nowrap !important;
             cursor: pointer !important;
-            padding: 4px 8px !important;
+            padding: 4px 10px !important;
             border-radius: 6px !important;
             background: #fff !important;
             border: 1px solid #ddd !important;
             font-weight: bold !important;
-            display: inline-flex !important;
-            align-items: center !important;
             user-select: none !important;
+            z-index: 10;
         }
-        .fc-toolbar-title::after {
-            content: "🔄";
-            font-size: 0.7rem;
-            margin-left: 4px;
-            opacity: 0.6;
-        }
-        .fc-toolbar-title:active { background-color: #f0f0f0 !important; }
+        .fc-toolbar-title::after { content: " 🔄"; font-size: 0.7rem; opacity: 0.5; }
 
-        /* 移動ボタン（＜ ＞ today）を小さくする */
+        /* 2. 移動ボタン（＜ ＞ today）を年月の「右側」から開始させる */
+        .fc-toolbar-chunk:nth-child(2) {
+            display: flex !important;
+            align-items: center !important;
+            gap: 3px !important;
+            margin-left: calc(50% + 65px) !important; /* 年月の幅を考慮して右にずらす */
+        }
+        
+        /* 不要な余白や塊を消す */
+        .fc-toolbar-chunk:first-child, .fc-toolbar-chunk:last-child { display: none !important; }
+
+        /* ボタンを小さく */
         .fc .fc-button {
-            padding: 2px 6px !important;
-            font-size: 0.75rem !important;
-            height: 30px !important;
-            line-height: 1 !important;
-        }
-        .fc-today-button {
-            padding: 2px 8px !important;
+            padding: 1px 5px !important;
             font-size: 0.7rem !important;
+            height: 26px !important;
         }
+        .fc-today-button { padding: 1px 6px !important; font-size: 0.65rem !important; }
 
-        /* その他UIパーツ */
+        /* 既存UI */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 5px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
         #loginBtn.logged-in { background: #e3f2fd; color: var(--primary-color); }
@@ -120,7 +117,7 @@
         const db = firebase.firestore();
         let currentUser = null;
         let calendar;
-        let currentMode = 0; // 0:月, 1:2週, 2:1週
+        let currentMode = 0; 
 
         auth.onAuthStateChanged(user => {
             currentUser = user;
@@ -145,13 +142,12 @@
                 titleFormat: { year: 'numeric', month: 'long' },
                 headerToolbar: {
                     left: '',
-                    center: 'title,prev,next,today', // この順序で中央に固定
+                    center: 'title,prev,next,today', // この並び順
                     right: ''
                 },
                 views: { twoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
                 events: getCalendarEvents(),
                 eventClick: function(info) { editTaskName(info.event.extendedProps.taskId); },
-                // 描画のたびに年月タイトルをクリック可能にする
                 datesSet: function() {
                     const titleEl = document.querySelector('.fc-toolbar-title');
                     if (titleEl) {
@@ -167,7 +163,6 @@
             calendar.render();
         }
 
-        // --- データ管理ロジック ---
         function saveAllData(tasks, stats) {
             localStorage.setItem('myTasks', JSON.stringify(tasks));
             localStorage.setItem('myStats', JSON.stringify(stats));
