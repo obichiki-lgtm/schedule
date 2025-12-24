@@ -19,6 +19,7 @@
         .status-item { flex: 1; text-align: center; }
         .status-value { display: block; font-size: 1.6rem; font-weight: bold; color: var(--primary-color); }
         .status-label { font-size: 0.7rem; color: #777; font-weight: bold; }
+        /* 修正点2: 見出しを「復習スケジューラー」に変更 */
         h1 { font-size: 1.3rem; text-align: center; color: var(--primary-color); margin: 10px 0 20px; }
         h2 { font-size: 1rem; border-left: 5px solid var(--primary-color); padding-left: 10px; margin-top: 25px; margin-bottom: 12px; line-height: 1.2; }
         .input-area { display: flex; gap: 8px; margin-bottom: 15px; }
@@ -61,7 +62,7 @@
     </div>
 
     <script>
-        // --- 設定・認証 ---
+        // Firebase構成
         const firebaseConfig = {
             apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
             authDomain: "my-study-app-6a0b6.firebaseapp.com",
@@ -71,6 +72,7 @@
             appId: "1:441129563668:web:48cc07f882bff1785e5901",
             measurementId: "G-WTPBE7LPN1"
         };
+
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -96,7 +98,8 @@
                     await auth.signInWithPopup(provider);
                 }
             } catch (error) {
-                alert("ログイン失敗: " + error.message);
+                console.error("Auth Error:", error);
+                alert("ログインに失敗しました。");
             }
         }
 
@@ -135,7 +138,6 @@
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
-        // --- 復習ロジック (自動リスケ・回数表示) ---
         function addTask() {
             const input = document.getElementById('taskInput');
             if (input.value === "") return;
@@ -151,6 +153,7 @@
             input.value = ""; displayTasks(); calendar.setOption('events', getCalendarEvents());
         }
 
+        // 自動リスケジュール機能：実施日が遅れた場合に未来の予定をずらす
         function completeTask(id) {
             let tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
             const taskIndex = tasks.findIndex(t => t.id === id);
@@ -163,7 +166,6 @@
             const diffTime = today.getTime() - scheduledDate.getTime();
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            // 未来の予定をずらす(自動リスケ)
             if (diffDays > 0) {
                 tasks[taskIndex].reviews = tasks[taskIndex].reviews.map(dateStr => {
                     const d = new Date(dateStr);
@@ -171,8 +173,9 @@
                     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 });
             }
+
             tasks[taskIndex].reviews = tasks[taskIndex].reviews.filter(d => d !== todayStr);
-            
+
             let stats = JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 };
             stats.total += 1;
             if (stats.lastDate !== todayStr) {
@@ -181,8 +184,10 @@
                 stats.streak = (stats.lastDate === yesterdayStr) ? stats.streak + 1 : 1;
                 stats.lastDate = todayStr;
             }
+
             saveAllData(tasks, stats);
-            displayTasks(); calendar.setOption('events', getCalendarEvents());
+            displayTasks();
+            calendar.setOption('events', getCalendarEvents());
         }
 
         function updateStats() {
@@ -201,13 +206,16 @@
             tasks.forEach(t => {
                 const totalSteps = 5;
                 const currentStep = (totalSteps - t.reviews.length) + 1;
+                
                 if (t.reviews.includes(today)) {
-                    const div = document.createElement('div'); div.className = 'task-item';
+                    const div = document.createElement('div'); 
+                    div.className = 'task-item';
                     div.innerHTML = `<span>${t.name} <small>(${currentStep}回目)</small></span> 
                                      <button class="btn-done" onclick="completeTask(${t.id})">今日実施</button>`;
                     todayList.appendChild(div);
                 }
             });
+
             if(todayList.innerHTML === "") todayList.innerHTML = '<p style="text-align:center; color:#888; font-size:0.9rem;">今日の復習はありません。</p>';
             
             allTasksList.innerHTML = "";
