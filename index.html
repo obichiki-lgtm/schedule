@@ -19,6 +19,7 @@
         .status-item { flex: 1; text-align: center; }
         .status-value { display: block; font-size: 1.6rem; font-weight: bold; color: var(--primary-color); }
         .status-label { font-size: 0.7rem; color: #777; font-weight: bold; }
+        /* 1. 見出しも修正 */
         h1 { font-size: 1.3rem; text-align: center; color: var(--primary-color); margin: 10px 0 20px; }
         h2 { font-size: 1rem; border-left: 5px solid var(--primary-color); padding-left: 10px; margin-top: 25px; margin-bottom: 12px; line-height: 1.2; }
         .input-area { display: flex; gap: 8px; margin-bottom: 15px; }
@@ -61,6 +62,7 @@
     </div>
 
     <script>
+        // --- 設定・認証ロジック ---
         const firebaseConfig = {
             apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
             authDomain: "my-study-app-6a0b6.firebaseapp.com",
@@ -136,6 +138,7 @@
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
+        // --- メインロジック（追加・完了・回数計算） ---
         function addTask() {
             const input = document.getElementById('taskInput');
             if (input.value === "") return;
@@ -163,6 +166,7 @@
             const diffTime = today.getTime() - scheduledDate.getTime();
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+            // 自動リスケジュール
             if (diffDays > 0) {
                 tasks[taskIndex].reviews = tasks[taskIndex].reviews.map(dateStr => {
                     const d = new Date(dateStr);
@@ -171,6 +175,8 @@
                 });
             }
             tasks[taskIndex].reviews = tasks[taskIndex].reviews.filter(d => d !== todayStr);
+            
+            // 統計更新
             let stats = JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 };
             stats.total += 1;
             if (stats.lastDate !== todayStr) {
@@ -206,6 +212,7 @@
                 }
             });
             if(todayList.innerHTML === "") todayList.innerHTML = '<p style="text-align:center; color:#888; font-size:0.9rem;">今日の復習はありません。</p>';
+            
             allTasksList.innerHTML = "";
             tasks.forEach(t => {
                 const div = document.createElement('div'); div.className = 'task-item'; div.style.borderLeftColor = "#ccc";
@@ -242,6 +249,7 @@
         }
 
         function deleteFullTask(id) {
+            // 3. 削除メッセージも丁寧に修正
             if(!confirm("この学習の全スケジュールを削除しますか？")) return;
             let tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
             tasks = tasks.filter(t => t.id !== id);
