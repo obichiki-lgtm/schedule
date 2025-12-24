@@ -19,7 +19,6 @@
         .status-item { flex: 1; text-align: center; }
         .status-value { display: block; font-size: 1.6rem; font-weight: bold; color: var(--primary-color); }
         .status-label { font-size: 0.7rem; color: #777; font-weight: bold; }
-        /* 1. 見出しも修正 */
         h1 { font-size: 1.3rem; text-align: center; color: var(--primary-color); margin: 10px 0 20px; }
         h2 { font-size: 1rem; border-left: 5px solid var(--primary-color); padding-left: 10px; margin-top: 25px; margin-bottom: 12px; line-height: 1.2; }
         .input-area { display: flex; gap: 8px; margin-bottom: 15px; }
@@ -62,7 +61,7 @@
     </div>
 
     <script>
-        // --- 設定・認証ロジック ---
+        // --- 設定・認証 ---
         const firebaseConfig = {
             apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
             authDomain: "my-study-app-6a0b6.firebaseapp.com",
@@ -72,7 +71,6 @@
             appId: "1:441129563668:web:48cc07f882bff1785e5901",
             measurementId: "G-WTPBE7LPN1"
         };
-
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
@@ -98,8 +96,7 @@
                     await auth.signInWithPopup(provider);
                 }
             } catch (error) {
-                console.error("Auth Error:", error);
-                alert("ログインに失敗しました。");
+                alert("ログイン失敗: " + error.message);
             }
         }
 
@@ -138,7 +135,7 @@
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
-        // --- メインロジック（追加・完了・回数計算） ---
+        // --- 復習ロジック (自動リスケ・回数表示) ---
         function addTask() {
             const input = document.getElementById('taskInput');
             if (input.value === "") return;
@@ -166,7 +163,7 @@
             const diffTime = today.getTime() - scheduledDate.getTime();
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            // 自動リスケジュール
+            // 未来の予定をずらす(自動リスケ)
             if (diffDays > 0) {
                 tasks[taskIndex].reviews = tasks[taskIndex].reviews.map(dateStr => {
                     const d = new Date(dateStr);
@@ -176,7 +173,6 @@
             }
             tasks[taskIndex].reviews = tasks[taskIndex].reviews.filter(d => d !== todayStr);
             
-            // 統計更新
             let stats = JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 };
             stats.total += 1;
             if (stats.lastDate !== todayStr) {
@@ -200,6 +196,7 @@
             const allTasksList = document.getElementById('allTasksList');
             const tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
             const today = getTodayStr();
+            
             todayList.innerHTML = "";
             tasks.forEach(t => {
                 const totalSteps = 5;
@@ -229,7 +226,13 @@
                 const totalSteps = 5;
                 const doneSteps = totalSteps - task.reviews.length;
                 task.reviews.forEach((date, index) => {
-                    events.push({ title: `${task.name} (${doneSteps + index + 1}回目)`, start: date, extendedProps: { taskId: task.id }, backgroundColor: '#4a90e2', borderColor: '#4a90e2' });
+                    events.push({ 
+                        title: `${task.name} (${doneSteps + index + 1}回目)`, 
+                        start: date, 
+                        extendedProps: { taskId: task.id }, 
+                        backgroundColor: '#4a90e2', 
+                        borderColor: '#4a90e2' 
+                    });
                 });
             });
             return events;
@@ -249,7 +252,6 @@
         }
 
         function deleteFullTask(id) {
-            // 3. 削除メッセージも丁寧に修正
             if(!confirm("この学習の全スケジュールを削除しますか？")) return;
             let tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
             tasks = tasks.filter(t => t.id !== id);
