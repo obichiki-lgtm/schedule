@@ -13,15 +13,15 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* ヘッダー・タイトル設定 */
-        .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; position: relative !important; margin-bottom: 20px !important; }
+        /* カレンダーヘッダー：タイトルタップで切り替え */
+        .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; position: relative !important; margin-bottom: 15px !important; }
         .fc-toolbar-chunk:nth-child(2) { position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; }
-        .fc-toolbar-title { font-size: 0.9rem !important; font-weight: bold !important; padding: 6px 12px !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; cursor: pointer !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .fc .fc-button { padding: 2px 6px !important; font-size: 0.7rem !important; background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; }
+        .fc-toolbar-title { font-size: 0.85rem !important; font-weight: bold !important; padding: 6px 12px !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; cursor: pointer !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .fc .fc-button { padding: 2px 6px !important; font-size: 0.65rem !important; background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; }
 
-        /* リスト表示のカスタマイズ（スマホ最適化） */
-        .fc-list-day-side-text { color: var(--primary-color); font-weight: bold; }
-        .fc-list-event-title { cursor: pointer; font-size: 0.85rem; }
+        /* カングリッド表示の高さ調整 */
+        .fc-daygrid-day-frame { min-height: 50px !important; }
+        .fc-list-event-title { cursor: pointer; font-size: 0.8rem; }
 
         /* UIパーツ */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
@@ -29,7 +29,6 @@
         #loginBtn.logged-in { background: #e3f2fd; color: var(--primary-color); }
         h1 { font-size: 1.2rem; text-align: center; color: var(--primary-color); margin: 5px 0 15px; }
         h2 { font-size: 0.95rem; border-left: 4px solid var(--primary-color); padding-left: 8px; margin-top: 20px; margin-bottom: 10px; }
-        
         .status-panel { display: flex; justify-content: space-around; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 10px; margin-bottom: 15px; }
         .status-value { display: block; font-size: 1.4rem; font-weight: bold; color: var(--primary-color); }
         .status-label { font-size: 0.65rem; color: #777; }
@@ -43,7 +42,7 @@
         .review-item { border-left-color: var(--primary-color); }
         .btn-done { background-color: var(--success-color); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
         
-        #calendar { margin-top: 10px; background: white; border-top: 1px solid #eee; padding-top: 10px; min-height: 350px; }
+        #calendar { margin-top: 10px; background: white; border-top: 1px solid #eee; padding-top: 10px; min-height: 250px; }
         .hint { font-size: 0.7rem; color: #999; text-align: center; margin-top: 12px; line-height: 1.5; }
     </style>
 </head>
@@ -69,10 +68,10 @@
 
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">タイトルをタップ：切替 (2週間リスト / 1週間リスト / 月)<br>予定をタップ：名前変更</p>
+        <p class="hint">タイトルをタップ：表示切替<br>(2週間 → 1週間 → 今日リスト → 月)</p>
 
         <div style="margin-top: 40px; opacity: 0.6;">
-            <h2>管理・削除</h2>
+            <h2>全タスク管理</h2>
             <div id="allTasksList"></div>
         </div>
     </div>
@@ -93,8 +92,9 @@
         let currentUser = null;
         let calendar;
         let viewIndex = 0;
-        // 順番を 2週間リスト(listTwoWeeks) -> 1週間リスト(listWeek) -> 月(dayGridMonth) に変更
-        const viewModes = ['listTwoWeeks', 'listWeek', 'dayGridMonth'];
+        
+        // 指定された順序：2週間(グリッド) -> 1週間(グリッド) -> 今日(リスト) -> 月(グリッド)
+        const viewModes = ['dayGridTwoWeeks', 'dayGridWeek', 'listDay', 'dayGridMonth'];
 
         auth.onAuthStateChanged(user => {
             currentUser = user;
@@ -113,11 +113,11 @@
         function initCalendar() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'listTwoWeeks', // 最初は2週間リストを表示
+                initialView: 'dayGridTwoWeeks', 
                 locale: 'ja',
                 height: 'auto',
                 views: {
-                    listTwoWeeks: { type: 'list', duration: { weeks: 2 }, buttonText: '2週間' }
+                    dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 }, buttonText: '2週間' }
                 },
                 headerToolbar: { left: '', center: 'title', right: 'prev,next,today' },
                 events: getCalendarEvents(),
