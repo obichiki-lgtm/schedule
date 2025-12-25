@@ -13,6 +13,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; }
         
+        /* カレンダーヘッダー設定 */
         .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; position: relative !important; margin-bottom: 20px !important; }
         .fc-toolbar-chunk:nth-child(2) { position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; z-index: 100; }
         .fc-toolbar-title { font-size: 0.9rem !important; font-weight: bold !important; padding: 6px 12px !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; cursor: pointer !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -20,6 +21,7 @@
 
         .fc-daygrid-day-frame { min-height: 50px !important; }
         
+        /* UIパーツ */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 5px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
         #loginBtn.logged-in { background: #e3f2fd; color: var(--primary-color); }
@@ -90,7 +92,7 @@
         let calendar;
         let viewIndex = 0;
         
-        // 【修正】カレンダー形式のみの3段階ループに変更
+        // 【修正】確実に表示される3つのカレンダー表示モードのみに限定
         const viewModes = ['dayGridTwoWeeks', 'dayGridWeek', 'dayGridMonth'];
 
         auth.onAuthStateChanged(user => {
@@ -113,7 +115,7 @@
                 initialView: 'dayGridTwoWeeks',
                 locale: 'ja',
                 height: 'auto',
-                // 【修正】タイトルの重複年を表示しない
+                // 【修正】タイトル重複の解消
                 titleFormat: function(info) {
                     const start = info.start.marker;
                     const end = new Date(info.end.marker);
@@ -128,7 +130,7 @@
                     const endStr = (sY === eY) ? `${eM}月${eD}日` : `${eY}年${eM}月${eD}日`;
                     return `${sY}年${sM}月${sD}日 – ${endStr}`;
                 },
-                // 【修正】曜日ラベルを非表示にし日付(M/D)のみにする
+                // 【修正】曜日ラベルを消し日付のみを表示
                 dayHeaderContent: function(arg) {
                     return (arg.date.getMonth() + 1) + '/' + arg.date.getDate();
                 },
@@ -162,7 +164,7 @@
             localStorage.setItem('myTodos', JSON.stringify(todos));
             if (currentUser) db.collection("users").doc(currentUser.uid).set({ tasks, stats, todos }, { merge: true });
             displayAll(); 
-            calendar.setOption('events', getCalendarEvents()); 
+            if (calendar) calendar.setOption('events', getCalendarEvents()); 
             updateStats();
         }
 
@@ -174,7 +176,7 @@
                 if (data.tasks) localStorage.setItem('myTasks', JSON.stringify(data.tasks));
                 if (data.stats) localStorage.setItem('myStats', JSON.stringify(data.stats));
                 if (data.todos) localStorage.setItem('myTodos', JSON.stringify(data.todos));
-                displayAll(); updateStats(); calendar.setOption('events', getCalendarEvents());
+                displayAll(); updateStats(); if(calendar) calendar.setOption('events', getCalendarEvents());
             }
         }
 
