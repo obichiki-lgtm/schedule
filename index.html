@@ -3,46 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>復習スケジューラー</title>
+    <title>復習スケジューラー Pro</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <style>
-        :root { --primary-color: #4a90e2; --bg-color: #f4f7f6; --success-color: #2ecc71; --text-color: #333; }
+        :root { --primary-color: #4a90e2; --bg-color: #f4f7f6; --success-color: #2ecc71; --todo-color: #f39c12; --text-color: #333; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* --- カレンダーヘッダーのスマホ最適化レイアウト --- */
+        /* --- カレンダーヘッダー：重なり防止レイアウト --- */
         .fc .fc-toolbar {
             display: flex !important;
-            flex-direction: row !important;
+            justify-content: space-between !important;
             align-items: center !important;
-            justify-content: space-between !important; /* 両端と中央に配置 */
-            margin-bottom: 15px !important;
             position: relative !important;
+            margin-bottom: 20px !important;
             height: 40px !important;
         }
-
-        /* 1. 左側のスペース（中央を維持するためのダミー） */
-        .fc-toolbar-chunk:nth-child(1) {
-            flex: 1 !important;
-            display: flex !important;
-        }
-
-        /* 2. 中央：タイトル（年月） */
         .fc-toolbar-chunk:nth-child(2) {
-            flex: 0 1 auto !important;
-            display: flex !important;
-            justify-content: center !important;
-            position: absolute !important; /* 画面の真ん中に固定 */
+            position: absolute !important;
             left: 50% !important;
-            transform: translateX(-50%) !important;
+            top: 50% !important;
+            transform: translate(-50%, -50%) !important;
             z-index: 1 !important;
         }
-
         .fc-toolbar-title {
-            font-size: 0.9rem !important;
+            font-size: 0.8rem !important;
             font-weight: bold !important;
             padding: 4px 8px !important;
             border: 1px solid #ddd !important;
@@ -51,65 +39,70 @@
             white-space: nowrap !important;
             cursor: pointer !important;
         }
-        .fc-toolbar-title::after { content: " 🔄"; font-size: 0.7rem; opacity: 0.5; }
-
-        /* 3. 右側：ボタン群（< > today） */
         .fc-toolbar-chunk:nth-child(3) {
-            flex: 1 !important;
+            margin-left: auto !important;
             display: flex !important;
-            justify-content: flex-end !important;
             gap: 2px !important;
-            z-index: 2 !important; /* ボタンを上に */
+            z-index: 2 !important;
         }
-
-        /* ボタンの最小化（スマホで重ならないように） */
         .fc .fc-button {
             padding: 1px 4px !important;
             height: 26px !important;
-            font-size: 0.7rem !important;
+            font-size: 0.65rem !important;
             background-color: #fff !important;
             color: #444 !important;
             border: 1px solid #ddd !important;
-            box-shadow: none !important;
         }
-        .fc-today-button { font-size: 0.65rem !important; padding: 0 5px !important; }
-        .fc .fc-icon { font-size: 0.8em !important; }
+        .fc-today-button { font-size: 0.6rem !important; padding: 0 5px !important; }
 
-        /* その他UI（変更なし） */
+        /* UIデザイン */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 5px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
         #loginBtn.logged-in { background: #e3f2fd; color: var(--primary-color); }
-        .status-panel { display: flex; justify-content: space-around; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px; margin-bottom: 15px; }
-        .status-item { flex: 1; text-align: center; }
-        .status-value { display: block; font-size: 1.6rem; font-weight: bold; color: var(--primary-color); }
-        .status-label { font-size: 0.7rem; color: #777; font-weight: bold; }
-        h1 { font-size: 1.3rem; text-align: center; color: var(--primary-color); margin: 10px 0 15px; }
-        h2 { font-size: 1rem; border-left: 5px solid var(--primary-color); padding-left: 10px; margin-top: 25px; margin-bottom: 12px; line-height: 1.2; }
-        .input-area { display: flex; gap: 8px; margin-bottom: 15px; }
-        input[type="text"] { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
-        button.add-btn { background-color: var(--primary-color); color: white; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .task-item { background: #fff; border: 1px solid #eee; border-left: 5px solid var(--primary-color); padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; }
-        .btn-done { background-color: var(--success-color); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; min-width: 80px; }
-        .btn-delete { background-color: #95a5a6; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 0.75rem; }
-        #calendar { margin-top: 10px; background: white; font-size: 0.75rem; }
+        h1 { font-size: 1.2rem; text-align: center; color: var(--primary-color); margin: 5px 0 15px; }
+        h2 { font-size: 0.9rem; border-left: 4px solid var(--primary-color); padding-left: 8px; margin-top: 18px; margin-bottom: 8px; }
+        .status-panel { display: flex; justify-content: space-around; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 10px; margin-bottom: 12px; }
+        .status-value { display: block; font-size: 1.3rem; font-weight: bold; color: var(--primary-color); }
+        .status-label { font-size: 0.6rem; color: #777; }
+        
+        .input-area { display: flex; gap: 6px; margin-bottom: 10px; }
+        input[type="text"] { flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+        .add-btn { background-color: var(--todo-color); color: white; border: none; padding: 0 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.75rem; }
+        
+        .task-item { background: #fff; border: 1px solid #eee; border-left: 5px solid #ccc; padding: 10px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; font-size: 0.8rem; }
+        .review-item { border-left-color: var(--primary-color); }
+        .todo-item { border-left-color: var(--todo-color); }
+        
+        .btn-group { display: flex; gap: 4px; }
+        .btn-done { background-color: var(--success-color); color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; font-weight: bold; }
+        .btn-del { background-color: #95a5a6; color: white; border: none; padding: 6px 10px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
+        
+        #calendar { margin-top: 5px; background: white; font-size: 0.7rem; border-top: 1px solid #eee; padding-top: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="auth-header"><button id="loginBtn" onclick="handleAuth()">☁️ ログイン</button></div>
         <h1>復習スケジューラー</h1>
+        
         <div class="status-panel">
             <div class="status-item"><span class="status-value" id="streakCount">0</span><span class="status-label">🔥 継続日数</span></div>
             <div class="status-item"><span class="status-value" id="totalDone">0</span><span class="status-label">🏆 累計完了</span></div>
         </div>
-        <div class="input-area">
-            <input type="text" id="taskInput" placeholder="勉強した内容を入力してね">
-            <button class="add-btn" onclick="addTask()">登録</button>
-        </div>
+
         <h2>今日の復習</h2>
-        <div id="todayList"></div>
+        <div id="todayReviewList"></div>
+
+        <h2>ToDoリスト (新しく勉強すること)</h2>
+        <div class="input-area">
+            <input type="text" id="todoInput" placeholder="新しく勉強する内容を入力">
+            <button class="add-btn" onclick="addTodo()">ToDo登録</button>
+        </div>
+        <div id="todoList"></div>
+
         <h2>カレンダー</h2>
         <div id="calendar"></div>
+
         <div style="margin-top: 30px; opacity: 0.7;">
             <h2>スケジュール一括削除</h2>
             <div id="allTasksList"></div>
@@ -117,6 +110,7 @@
     </div>
 
     <script>
+        // Firebase設定 (元コードを維持)
         const firebaseConfig = {
             apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
             authDomain: "my-study-app-6a0b6.firebaseapp.com",
@@ -145,60 +139,49 @@
             else { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
         }
 
-        window.onload = function() { initCalendar(); displayTasks(); updateStats(); };
+        window.onload = function() { initCalendar(); renderAll(); updateStats(); };
 
         function initCalendar() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 locale: 'ja',
-                aspectRatio: 1.2,
-                headerToolbar: {
-                    left: '', 
-                    center: 'title', 
-                    right: 'prev,next,today'
-                },
+                aspectRatio: 1.35,
+                headerToolbar: { left: '', center: 'title', right: 'prev,next,today' },
                 titleFormat: function(info) {
                     const start = info.start.marker;
                     const end = info.end.marker;
+                    const actualEnd = new Date(end); actualEnd.setDate(actualEnd.getDate() - 1);
                     const startYear = start.getFullYear();
                     const startMonth = start.getMonth() + 1;
-                    const actualEnd = new Date(end);
-                    actualEnd.setDate(actualEnd.getDate() - 1);
-                    const endYear = actualEnd.getFullYear();
                     const endMonth = actualEnd.getMonth() + 1;
-
-                    if (startMonth === endMonth) {
-                        return `${startYear}年${startMonth}月`;
-                    } else {
-                        // 年が同じなら「月」のみ、年が違えばそのまま表示（スッキリ形式）
-                        const endStr = (startYear === endYear) ? `${endMonth}月` : `${endYear}年${endMonth}月`;
-                        return `${startYear}年${startMonth}月 – ${endStr}`;
-                    }
+                    if (startMonth === endMonth) return `${startYear}年${startMonth}月`;
+                    return `${startYear}年${startMonth}月 – ${endMonth}月`;
                 },
-                views: { twoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
                 events: getCalendarEvents(),
-                eventClick: function(info) { editTaskName(info.event.extendedProps.taskId); },
                 datesSet: function() {
                     const titleEl = document.querySelector('.fc-toolbar-title');
-                    if (titleEl) {
-                        titleEl.onclick = function() {
-                            currentMode = (currentMode + 1) % 3;
-                            if (currentMode === 0) calendar.changeView('dayGridMonth');
-                            else if (currentMode === 1) calendar.changeView('twoWeeks');
-                            else calendar.changeView('dayGridWeek');
-                        };
-                    }
+                    if (titleEl) titleEl.onclick = () => {
+                        currentMode = (currentMode + 1) % 3;
+                        const views = ['dayGridMonth', 'dayGrid', 'dayGridWeek'];
+                        calendar.changeView(views[currentMode]);
+                    };
                 }
             });
             calendar.render();
         }
 
-        // --- データロジック ---
-        function saveAllData(tasks, stats) {
+        // --- データ管理ロジック ---
+        function getTasks() { return JSON.parse(localStorage.getItem('myTasks')) || []; }
+        function getTodos() { return JSON.parse(localStorage.getItem('myTodos')) || []; }
+        
+        function saveAllData(tasks, stats, todos) {
             localStorage.setItem('myTasks', JSON.stringify(tasks));
             localStorage.setItem('myStats', JSON.stringify(stats));
-            if (currentUser) db.collection("users").doc(currentUser.uid).set({ tasks, stats }, { merge: true });
+            if(todos) localStorage.setItem('myTodos', JSON.stringify(todos));
+            if (currentUser) db.collection("users").doc(currentUser.uid).set({ tasks, stats, todos }, { merge: true });
+            calendar.setOption('events', getCalendarEvents());
+            renderAll();
         }
 
         async function syncWithCloud() {
@@ -208,112 +191,93 @@
                 const data = doc.data();
                 if (data.tasks) localStorage.setItem('myTasks', JSON.stringify(data.tasks));
                 if (data.stats) localStorage.setItem('myStats', JSON.stringify(data.stats));
-                displayTasks(); updateStats(); calendar.setOption('events', getCalendarEvents());
+                if (data.todos) localStorage.setItem('myTodos', JSON.stringify(data.todos));
+                renderAll(); updateStats(); calendar.setOption('events', getCalendarEvents());
             }
         }
 
-        function getTodayStr() {
-            const now = new Date();
-            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        }
-
-        function addTask() {
-            const input = document.getElementById('taskInput');
+        function addTodo() {
+            const input = document.getElementById('todoInput');
             if (!input.value) return;
+            const todos = getTodos();
+            todos.push({ id: Date.now(), name: input.value });
+            saveAllData(getTasks(), JSON.parse(localStorage.getItem('myStats')) || { total: 0, streak: 0, lastDate: "" }, todos);
+            input.value = "";
+        }
+
+        function clearTodo(id) {
+            const todos = getTodos();
+            const todo = todos.find(t => t.id === id);
+            if (!todo) return;
             const intervals = [1, 4, 11, 25, 55];
-            const reviewDates = intervals.map(days => {
+            const reviews = intervals.map(days => {
                 const d = new Date(); d.setDate(d.getDate() + days);
-                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                return d.toISOString().split('T')[0];
             });
-            const task = { id: Date.now(), name: input.value, reviews: reviewDates, createdAt: new Date().toLocaleDateString() };
-            let tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
-            tasks.push(task);
-            saveAllData(tasks, JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 });
-            input.value = ""; displayTasks(); calendar.setOption('events', getCalendarEvents());
+            const tasks = getTasks();
+            tasks.push({ id: todo.id, name: todo.name, reviews: reviews });
+            saveAllData(tasks, JSON.parse(localStorage.getItem('myStats')) || { total: 0, streak: 0, lastDate: "" }, todos.filter(t => t.id !== id));
         }
 
-        function completeTask(id) {
-            let tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
-            const idx = tasks.findIndex(t => t.id === id);
+        function completeReview(taskId) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            let tasks = getTasks();
+            const idx = tasks.findIndex(t => t.id === taskId);
             if (idx === -1) return;
-            const todayStr = getTodayStr();
-            const today = new Date(todayStr);
-            const scheduledStr = tasks[idx].reviews.find(d => d === todayStr) || todayStr;
-            const diffDays = Math.floor((today - new Date(scheduledStr)) / 86400000);
-            if (diffDays > 0) {
-                tasks[idx].reviews = tasks[idx].reviews.map(dStr => {
-                    const d = new Date(dStr); d.setDate(d.getDate() + diffDays);
-                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                });
-            }
             tasks[idx].reviews = tasks[idx].reviews.filter(d => d !== todayStr);
-            let stats = JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 };
-            stats.total += 1;
-            if (stats.lastDate !== todayStr) {
-                const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-                stats.streak = (stats.lastDate === yesterdayStr) ? stats.streak + 1 : 1;
-                stats.lastDate = todayStr;
+            let stats = JSON.parse(localStorage.getItem('myStats')) || { total: 0, streak: 0, lastDate: "" };
+            stats.total++;
+            saveAllData(tasks, stats, getTodos());
+            updateStats();
+        }
+
+        function deleteItem(id, type) {
+            if (type === 'todo') {
+                saveAllData(getTasks(), JSON.parse(localStorage.getItem('myStats')) || { total: 0, streak: 0, lastDate: "" }, getTodos().filter(t => t.id !== id));
+            } else {
+                if(!confirm("全スケジュールを削除しますか？")) return;
+                saveAllData(getTasks().filter(t => t.id !== id), JSON.parse(localStorage.getItem('myStats')) || { total: 0, streak: 0, lastDate: "" }, getTodos());
             }
-            saveAllData(tasks, stats);
-            displayTasks(); updateStats(); calendar.setOption('events', getCalendarEvents());
         }
 
-        function updateStats() {
-            const stats = JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 };
-            document.getElementById('streakCount').innerText = stats.streak;
-            document.getElementById('totalDone').innerText = stats.total;
-        }
-
-        function displayTasks() {
-            const todayList = document.getElementById('todayList');
-            const allTasksList = document.getElementById('allTasksList');
-            const tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
-            const today = getTodayStr();
-            todayList.innerHTML = "";
-            tasks.forEach(t => {
-                if (t.reviews.includes(today)) {
-                    const div = document.createElement('div'); div.className = 'task-item';
-                    div.innerHTML = `<span>${t.name}</span> <button class="btn-done" onclick="completeTask(${t.id})">今日実施</button>`;
-                    todayList.appendChild(div);
+        function renderAll() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            
+            // 今日の復習描画
+            const reviewDiv = document.getElementById('todayReviewList');
+            reviewDiv.innerHTML = "";
+            getTasks().forEach(t => {
+                if (t.reviews.includes(todayStr)) {
+                    reviewDiv.innerHTML += `<div class="task-item review-item"><span>${t.name}</span><button class="btn-done" onclick="completeReview(${t.id})">完了</button></div>`;
                 }
             });
-            if(!todayList.innerHTML) todayList.innerHTML = '<p style="text-align:center; color:#888;">今日の復習はありません。</p>';
+            if (!reviewDiv.innerHTML) reviewDiv.innerHTML = '<p style="font-size:0.7rem; color:#999; text-align:center;">今日の復習はありません</p>';
+
+            // ToDoリスト描画
+            const todoDiv = document.getElementById('todoList');
+            todoDiv.innerHTML = "";
+            getTodos().forEach(t => {
+                todoDiv.innerHTML += `<div class="task-item todo-item"><span>${t.name}</span><div class="btn-group"><button class="btn-done" onclick="clearTodo(${t.id})">完了</button><button class="btn-del" onclick="deleteItem(${t.id}, 'todo')">削除</button></div></div>`;
+            });
+
+            // 削除用リスト描画
+            const allTasksList = document.getElementById('allTasksList');
             allTasksList.innerHTML = "";
-            tasks.forEach(t => {
-                const div = document.createElement('div'); div.className = 'task-item'; div.style.borderLeftColor = "#ccc";
-                div.innerHTML = `<span>${t.name}</span> <button class="btn-delete" onclick="deleteFullTask(${t.id})">削除</button>`;
-                allTasksList.appendChild(div);
+            getTasks().forEach(t => {
+                allTasksList.innerHTML += `<div class="task-item" style="border-left-color:#ccc"><span>${t.name}</span><button class="btn-del" onclick="deleteItem(${t.id}, 'task')">削除</button></div>`;
             });
         }
 
         function getCalendarEvents() {
-            const tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
-            let events = [];
-            tasks.forEach(task => {
-                const totalSteps = 5;
-                const doneSteps = totalSteps - task.reviews.length;
-                task.reviews.forEach((date, index) => {
-                    events.push({ title: `${task.name} (${doneSteps+index+1}回目)`, start: date, extendedProps: { taskId: task.id }, backgroundColor: '#4a90e2', borderColor: '#4a90e2' });
-                });
-            });
-            return events;
+            return getTasks().flatMap(task => 
+                task.reviews.map(date => ({ title: task.name, start: date, backgroundColor: '#4a90e2', borderColor: 'transparent' }))
+            );
         }
 
-        function editTaskName(id) {
-            let tasks = JSON.parse(localStorage.getItem('myTasks')) || [];
-            const idx = tasks.findIndex(t => t.id === id);
-            if (idx !== -1) {
-                const name = prompt("名前変更", tasks[idx].name);
-                if (name) { tasks[idx].name = name; saveAllData(tasks, JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 }); displayTasks(); calendar.setOption('events', getCalendarEvents()); }
-            }
-        }
-
-        function deleteFullTask(id) {
-            if(!confirm("全スケジュールを削除しますか？")) return;
-            let tasks = (JSON.parse(localStorage.getItem('myTasks')) || []).filter(t => t.id !== id);
-            saveAllData(tasks, JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 });
-            displayTasks(); calendar.setOption('events', getCalendarEvents());
+        function updateStats() {
+            const stats = JSON.parse(localStorage.getItem('myStats')) || { total: 0, streak: 0 };
+            document.getElementById('totalDone').innerText = stats.total;
+            document.getElementById('streakCount').innerText = stats.streak;
         }
     </script>
 </body>
