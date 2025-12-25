@@ -13,14 +13,14 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* ヘッダー・タイトル設定 */
+        /* カレンダーヘッダーのカスタマイズ */
         .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; position: relative !important; margin-bottom: 20px !important; }
         .fc-toolbar-chunk:nth-child(2) { position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; z-index: 100; }
         .fc-toolbar-title { font-size: 0.8rem !important; font-weight: bold !important; padding: 6px 12px !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; cursor: pointer !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .fc .fc-button { padding: 4px 8px !important; font-size: 0.7rem !important; background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; }
 
-        /* 曜日を非表示にするための設定 */
-        .fc-col-header-cell-cushion { font-size: 0.8rem; color: #666; text-decoration: none; }
+        /* 曜日を消し日付を調整するスタイル */
+        .fc-col-header-cell-cushion { font-size: 0.8rem; color: #666; text-decoration: none; padding: 4px 0 !important; }
         .fc-daygrid-day-frame { min-height: 55px !important; }
 
         /* UIパーツ */
@@ -69,7 +69,7 @@
 
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">タイトルをタップ：表示切替<br>2週間 → 1週間 → 月 (すべてカレンダー形式)</p>
+        <p class="hint">タイトルをタップ：表示切替<br>2週間 → 1週間 → 月 (カレンダーのみ)</p>
 
         <div style="margin-top: 40px; opacity: 0.6;">
             <h2>管理・削除</h2>
@@ -78,6 +78,7 @@
     </div>
 
     <script>
+        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
             authDomain: "my-study-app-6a0b6.firebaseapp.com",
@@ -94,7 +95,7 @@
         let calendar;
         let viewIndex = 0;
         
-        // 修正：リスト形式を除去し、3段階のループに変更
+        // 【修正】リスト形式を完全に削除
         const viewModes = ['dayGridTwoWeeks', 'dayGridWeek', 'dayGridMonth'];
 
         auth.onAuthStateChanged(user => {
@@ -117,39 +118,48 @@
                 initialView: 'dayGridTwoWeeks',
                 locale: 'ja',
                 height: 'auto',
-                // 修正：タイトルフォーマットの設定（年を一つにするための工夫）
-                titleFormat: function(date) {
-                    const start = date.start.marker;
-                    const end = date.end.marker;
-                    const startYear = start.getFullYear();
-                    const endYear = end.getFullYear();
+                // 【修正】タイトルを「2025年12月21日 – 1月3日」のように整形
+                titleFormat: function(info) {
+                    const start = info.start.marker;
+                    const end = info.end.marker;
+                    const startY = start.getFullYear();
+                    const endY = end.getFullYear();
+                    const startM = start.getMonth() + 1;
+                    const endM = end.getMonth() + 1;
+                    const startD = start.getDate();
                     
+                    // 月表示の場合
                     if (calendar.view.type === 'dayGridMonth') {
-                        return `${startYear}年 ${start.getMonth() + 1}月`;
+                        return `${startY}年 ${startM}月`;
                     }
                     
-                    // 2週間・1週間用：年をまたぐ場合以外は、年は最初だけ表示
-                    let startStr = `${startYear}年${start.getMonth() + 1}月${start.getDate()}日`;
-                    let endStr = `${start.getMonth() + 1 === end.getMonth() + 1 ? '' : (end.getMonth() + 1) + '月'}${end.getDate()}日`;
-                    
-                    // 終了日が翌年の場合のみ年を表示
-                    if (startYear !== endYear) {
-                        endStr = `${endYear}年${end.getMonth() + 1}月${end.getDate()}日`;
+                    // 2週間・1週間表示の場合
+                    // FullCalendarのendは翌日の0時を指すため、表示上は1日引いた日付を計算
+                    const realEnd = new Date(end);
+                    realEnd.setDate(realEnd.getDate() - 1);
+                    const eY = realEnd.getFullYear();
+                    const eM = realEnd.getMonth() + 1;
+                    const eD = realEnd.getDate();
+
+                    let startStr = `${startY}年${startM}月${startD}日`;
+                    let endStr = `${eM}月${eD}日`;
+
+                    // 年が異なる場合のみ終了日にも年を表示
+                    if (startY !== eY) {
+                        endStr = `${eY}年${eM}月${eD}日`;
                     }
-                    
+
                     return `${startStr} – ${endStr}`;
                 },
-                // 修正：ヘッダーから曜日を消して日付のみにする
-                dayHeaderFormat: { month: 'numeric', day: 'numeric', omitCommas: true },
+                // 【修正】ヘッダーの曜日を消し「12/21」形式にする
+                dayHeaderFormat: { month: 'numeric', day: 'numeric', weekday: 'long', omitCommas: true },
+                dayHeaderContent: function(arg) {
+                    // 曜日(weekday)を無視して日付/月のみを返す
+                    return (arg.date.getMonth() + 1) + '/' + arg.date.getDate();
+                },
                 views: {
-                    dayGridTwoWeeks: { 
-                        type: 'dayGrid', 
-                        duration: { weeks: 2 }
-                    },
-                    dayGridWeek: {
-                        type: 'dayGrid',
-                        duration: { weeks: 1 }
-                    }
+                    dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } },
+                    dayGridWeek: { type: 'dayGrid', duration: { weeks: 1 } }
                 },
                 headerToolbar: { left: '', center: 'title', right: 'prev,next,today' },
                 events: getCalendarEvents(),
@@ -168,7 +178,7 @@
             calendar.render();
         }
 
-        // --- データ管理・同期 ---
+        // --- データ管理 ---
         function getTasks() { return JSON.parse(localStorage.getItem('myTasks')) || []; }
         function getTodos() { return JSON.parse(localStorage.getItem('myTodos')) || []; }
         function getStats() { return JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 }; }
