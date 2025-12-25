@@ -14,7 +14,7 @@
             --bg-color: #f8fafb;
             --success-color: #2ecc71;
             --todo-color: #f39c12;
-            --danger-color: #ff4d4f; /* 削除ボタン：赤 */
+            --danger-color: #ff4d4f; /* 削除ボタン赤 */
             --text-color: #333;
         }
 
@@ -46,14 +46,14 @@
         .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         .btn-resched { background-color: #888; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         
-        /* タイトルデザイン：青棒消去＆枠線ボタン化 */
+        /* タイトルデザイン：青棒消去 & 崩れ防止 */
         #calendar { margin-top: 10px; border-radius: 15px; border: 1px solid #eee; padding: 5px; background: #fff; }
         .fc-toolbar-title { 
-            font-size: 1.1rem !important; font-weight: bold !important; cursor: pointer; 
-            padding: 6px 16px; border-radius: 8px; border: 1px solid #eee; background: #fff;
-            border-left: none !important; display: inline-block;
+            font-size: 1.05rem !important; font-weight: bold !important; cursor: pointer; 
+            padding: 6px 12px; border-radius: 8px; border: 1px solid #eee; background: #fff;
+            border-left: none !important; display: inline-block; white-space: nowrap;
         }
-        .fc .fc-button-primary { background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; font-size: 0.75rem !important; }
+        .fc .fc-button-primary { background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; font-size: 0.7rem !important; }
 
         /* 同時編集モーダル */
         .modal-overlay { 
@@ -178,9 +178,9 @@
             let task = tasks.find(t => t.id === taskId);
             if (!task) return;
 
-            task.name = newName; // 名前の同時更新
+            task.name = newName; // 名前を即時更新
 
-            if (targetDateStr !== oldDateStr) { // 日付変更がある場合のみスライド
+            if (targetDateStr !== oldDateStr) { // 日付が変更された場合のみスライド
                 const diffTime = new Date(targetDateStr) - new Date(oldDateStr);
                 const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
                 task.reviews = task.reviews.map((dateStr, idx) => {
@@ -218,10 +218,12 @@
             if (!titleEl) return;
             const text = titleEl.innerText;
             const months = text.match(/(\d+)月/g);
-            if (months && months.length >= 2) {
-                titleEl.innerText = `${months[0]} - ${months[months.length-1]}`;
-            } else if (months && months.length === 1) {
-                titleEl.innerText = months[0];
+            if (months) {
+                if (months.length >= 2) {
+                    titleEl.innerText = `${months[0]} - ${months[months.length-1]}`;
+                } else if (months.length === 1) {
+                    titleEl.innerText = `${months[0]} - ${months[0]}`; // 「2」のご要望通り同一月内でも重ねる
+                }
             }
         }
 
@@ -318,14 +320,14 @@
                     openEditModal(task.id, task.name, info.event.startStr, info.event.extendedProps.reviewIdx);
                 },
                 datesSet: () => {
-                    forceCompactTitle(); // 表示の度に「月 - 月」に置換
+                    forceCompactTitle(); 
                     const titleEl = document.querySelector('.fc-toolbar-title');
                     if (titleEl && !titleEl.dataset.hasClick) {
                         titleEl.dataset.hasClick = "true";
                         titleEl.onclick = () => {
                             isMonthView = !isMonthView;
                             calendar.changeView(isMonthView ? 'dayGridFourWeeks' : 'dayGridTwoWeeks');
-                            calendar.gotoDate(new Date()); // 今日（今週）を1行目に固定
+                            calendar.gotoDate(new Date()); // 今日を1行目に固定
                         };
                     }
                 }
@@ -333,7 +335,7 @@
             calendar.render();
             renderUI();
             
-            // 標準動作によるタイトル上書きを防止
+            // 標準動作によるタイトル上書きを常時監視して阻止
             const observer = new MutationObserver(forceCompactTitle);
             const titleContainer = document.querySelector('.fc-toolbar-title');
             if (titleContainer) observer.observe(titleContainer, { childList: true, characterData: true, subtree: true });
