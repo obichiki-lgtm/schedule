@@ -9,19 +9,15 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <style>
-        :root { --primary-color: #4a90e2; --bg-color: #f4f7f6; --success-color: #2ecc71; --todo-color: #f39c12; --danger-color: #e74c3c; --text-color: #333; }
+        :root { --primary-color: #4a90e2; --bg-color: #f4f7f6; --success-color: #2ecc71; --todo-color: #f39c12; --danger-color: #bdc3c7; --text-color: #333; }
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* カレンダー枠消し */
-        #calendar { margin-top: 15px; border: none !important; }
-        .fc { border: none !important; }
-        .fc-theme-standard td, .fc-theme-standard th { border: none !important; border-bottom: 1px solid #f0f0f0 !important; }
-        .fc-col-header { display: none; }
-        .fc-event { border-radius: 8px !important; padding: 2px 5px !important; font-size: 0.65rem !important; cursor: pointer; border: none !important; }
+        /* セクション見出し */
+        h2 { font-size: 1rem; border-left: 5px solid var(--primary-color); padding-left: 10px; margin-top: 25px; margin-bottom: 12px; }
+        .todo-header { border-left-color: var(--todo-color); }
 
-        /* ヘッダー・入力エリア */
-        .fc-toolbar-title { font-size: 0.9rem !important; font-weight: bold !important; padding: 8px 15px !important; border: 1px solid #eee !important; border-radius: 20px !important; cursor: pointer !important; background: #fff; }
+        /* 入力エリア */
         .status-panel { display: flex; justify-content: space-around; background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 20px; }
         .status-value { display: block; font-size: 1.5rem; font-weight: bold; color: var(--primary-color); text-align: center; }
         .status-label { font-size: 0.7rem; color: #888; }
@@ -29,30 +25,19 @@
         input[type="text"] { flex: 1; padding: 12px; border: 1px solid #eee; border-radius: 10px; font-size: 16px; outline: none; }
         .add-btn { background-color: var(--todo-color); color: white; border: none; padding: 0 15px; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
-        /* ToDoリストのアイテムデザイン */
-        .task-item { 
-            background: #fff; 
-            border: 1px solid #eee; 
-            border-left: 5px solid var(--todo-color); 
-            padding: 12px; 
-            margin-bottom: 8px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border-radius: 10px; 
-            font-size: 0.85rem; 
-        }
-        
-        /* ボタンを横に並べる設定 */
-        .button-group { 
-            display: flex; 
-            gap: 8px; 
-            align-items: center;
-        }
+        /* リストアイテム共通デザイン */
+        .task-item { background: #fff; border: 1px solid #eee; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-radius: 12px; font-size: 0.9rem; }
+        .button-group { display: flex; gap: 8px; }
 
-        .btn-done { background-color: var(--success-color); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
-        .btn-delete-item { background-color: #bdc3c7; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+        /* ボタンデザイン */
+        .btn-done { background-color: var(--success-color); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
         
+        /* カレンダー */
+        #calendar { margin-top: 10px; }
+        .fc-toolbar-title { font-size: 1.1rem !important; font-weight: bold !important; cursor: pointer; }
+        .hint { font-size: 0.7rem; color: #999; text-align: center; margin-top: 10px; }
+
         .auth-header { text-align: right; margin-bottom: 5px; }
         #loginBtn { background: none; border: none; font-size: 11px; color: #bbb; cursor: pointer; }
     </style>
@@ -72,14 +57,18 @@
             <button class="add-btn" onclick="addTodo()">登録</button>
         </div>
 
-        <h2 style="font-size:0.9rem; border-left:4px solid var(--todo-color); padding-left:8px;">ToDo</h2>
+        <h2 class="todo-header">ToDo</h2>
         <div id="todoList"></div>
 
-        <h2 style="font-size:0.9rem; border-left:4px solid var(--primary-color); padding-left:8px; margin-top:20px;">今日の復習</h2>
+        <h2>今日の復習</h2>
         <div id="todayReviewList"></div>
 
-        <h2 style="font-size:0.9rem; border-left:4px solid var(--primary-color); padding-left:8px; margin-top:25px;">カレンダー</h2>
+        <h2>カレンダー</h2>
         <div id="calendar"></div>
+        <p class="hint">タイトルタップで表示切替 / 予定タップで名前編集</p>
+
+        <h2 style="border-left-color: #ccc; color: #888;">スケジュール一括削除</h2>
+        <div id="allTasksManagementList"></div>
     </div>
 
     <script>
@@ -112,16 +101,31 @@
             if (calendar) calendar.refetchEvents();
         }
 
-        // --- ToDo削除機能 ---
+        // --- 1. ToDoの削除（確認バナー付き） ---
         function deleteTodo(id) {
-            // 確認バナーを表示
-            if(confirm("本当にこのToDoを削除しますか？\n（復習スケジュールには登録されません）")) {
+            if(confirm("このToDoを削除しますか？\n(カレンダーには登録されません)")) {
                 const todos = getTodos().filter(t => t.id !== id);
                 save(getTasks(), todos, getStats());
             }
         }
 
-        // --- 完了（復習へ移行） ---
+        // --- 2. スケジュールの一括削除 ---
+        function deleteFullTask(id) {
+            if(confirm("この項目の全スケジュール（1〜5回目すべて）を削除しますか？")) {
+                const tasks = getTasks().filter(t => t.id !== id);
+                save(tasks, getTodos(), getStats());
+            }
+        }
+
+        function addTodo() {
+            const input = document.getElementById('todoInput');
+            if (!input.value.trim()) return;
+            const todos = getTodos();
+            todos.push({ id: Date.now(), name: input.value });
+            save(getTasks(), todos, getStats());
+            input.value = "";
+        }
+
         function completeTodo(id) {
             const todos = getTodos();
             const item = todos.find(t => t.id === id);
@@ -135,16 +139,6 @@
             save(tasks, todos.filter(t => t.id !== id), getStats());
         }
 
-        function addTodo() {
-            const input = document.getElementById('todoInput');
-            if (!input.value.trim()) return;
-            const todos = getTodos();
-            todos.push({ id: Date.now(), name: input.value });
-            save(getTasks(), todos, getStats());
-            input.value = "";
-        }
-
-        // --- 復習完了（リスケ機能付き） ---
         function completeReview(id) {
             const todayStr = new Date().toISOString().split('T')[0];
             const today = new Date(todayStr);
@@ -161,9 +155,8 @@
                     d.setDate(d.getDate() + diffDays);
                     return d.toISOString().split('T')[0];
                 });
-                alert(`${diffDays} 日の遅れを自動調整しました ✨`);
+                alert(`${diffDays} 日の遅れを調整しました ✨`);
             }
-
             const stats = getStats();
             stats.total++;
             if (stats.lastDate !== todayStr) {
@@ -177,22 +170,30 @@
         function renderUI() {
             const today = new Date().toISOString().split('T')[0];
             const tasks = getTasks();
+            const todos = getTodos();
             const stats = getStats();
 
-            // ToDoリスト：完了ボタンの左に削除ボタンを確実に配置
-            document.getElementById('todoList').innerHTML = getTodos().map(t => `
-                <div class="task-item">
+            // ToDoリスト：削除ボタンを完了ボタンの左に配置
+            document.getElementById('todoList').innerHTML = todos.map(t => `
+                <div class="task-item" style="border-left: 5px solid var(--todo-color)">
                     <span>${t.name}</span>
                     <div class="button-group">
-                        <button class="btn-delete-item" onclick="deleteTodo(${t.id})">削除</button>
+                        <button class="btn-delete" onclick="deleteTodo(${t.id})">削除</button>
                         <button class="btn-done" onclick="completeTodo(${t.id})">完了</button>
                     </div>
                 </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.75rem;">ToDoはありません</p>';
 
+            // 今日の復習
             document.getElementById('todayReviewList').innerHTML = tasks.filter(t => t.reviews.some(d => d <= today)).map(t => `
-                <div class="task-item" style="border-left-color: var(--primary-color)">
+                <div class="task-item" style="border-left: 5px solid var(--primary-color)">
                     <span>${t.name}</span><button class="btn-done" onclick="completeReview(${t.id})">今日実施</button>
                 </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.75rem;">今日の復習はありません</p>';
+
+            // スケジュール一括削除（画面下部）
+            document.getElementById('allTasksManagementList').innerHTML = tasks.map(t => `
+                <div class="task-item" style="border-left: 5px solid #ccc">
+                    <span>${t.name}</span><button class="btn-delete" onclick="deleteFullTask(${t.id})">削除</button>
+                </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.75rem;">登録データはありません</p>';
 
             document.getElementById('streakCount').innerText = stats.streak;
             document.getElementById('totalDone').innerText = stats.total;
