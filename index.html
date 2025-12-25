@@ -14,14 +14,14 @@
             --bg-color: #f8fafb;
             --success-color: #2ecc71;
             --todo-color: #f39c12;
-            --danger-color: #ff4d4f; /* 削除ボタン用：赤 */
+            --danger-color: #ff4d4f;
             --text-color: #333;
         }
 
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* クラウドログイン */
+        /* クラウド同期セクション */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #f0f0f0; border: none; padding: 6px 14px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
 
@@ -35,11 +35,11 @@
         input[type="text"] { flex: 1; padding: 14px; border: 1px solid #e0e0e0; border-radius: 12px; font-size: 16px; outline: none; }
         .add-btn { background-color: var(--todo-color); color: white; border: none; padding: 0 20px; border-radius: 12px; font-weight: bold; cursor: pointer; }
 
-        /* 見出し */
+        /* 見出しデザイン */
         h2 { font-size: 1.1rem; border-left: 5px solid var(--primary-color); padding-left: 12px; margin: 30px 0 15px; color: #444; }
         .todo-header { border-left-color: var(--todo-color); }
 
-        /* アイテムデザイン */
+        /* リストアイテム */
         .task-item { background: #fff; border: 1px solid #f0f0f0; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 15px; font-size: 0.95rem; }
         .todo-item { border-left: 6px solid var(--todo-color); }
         .review-item { border-left: 6px solid var(--primary-color); }
@@ -48,15 +48,13 @@
         .button-group { display: flex; gap: 8px; }
         .btn-done { background-color: var(--success-color); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         
-        /* 削除ボタン：赤色に統一 */
+        /* 削除ボタン：赤色化 (#ff4d4f) */
         .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         
         /* カレンダー */
         #calendar { margin-top: 10px; border-radius: 15px; border: 1px solid #eee; padding: 5px; background: #fff; }
         .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; }
-        .fc-toolbar-chunk:nth-child(1) { flex: 1; }
         .fc-toolbar-chunk:nth-child(2) { flex: 2; text-align: center; }
-        .fc-toolbar-chunk:nth-child(3) { flex: 1; display: flex; justify-content: flex-end; gap: 4px; }
 
         /* 年月タイトル：青い棒を消去 */
         .fc-toolbar-title { 
@@ -106,14 +104,14 @@
 
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">年月をタップ：2週間 ↔ 4週間(月)</p>
+        <p class="hint">年月をタップ：2週間 ↔ 4週間 (常に今週から開始)</p>
 
         <h2 style="border-left-color: #ccc; color: #888;">スケジュール一括削除</h2>
         <div id="allTasksManagementList"></div>
     </div>
 
     <script>
-        // --- Firebase設定 (my-study-app-6a0b6) ---
+        // --- Firebase同期設定 (my-study-app-6a0b6) ---
         const firebaseConfig = {
             apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
             authDomain: "my-study-app-6a0b6.firebaseapp.com",
@@ -129,7 +127,6 @@
         let calendar = null;
         let isMonthView = false;
 
-        // ログイン状態監視
         auth.onAuthStateChanged(user => {
             currentUser = user;
             document.getElementById('loginBtn').innerText = user ? "✅ 同期中" : "☁️ ログイン";
@@ -185,11 +182,11 @@
 
         function deleteTodo(id) {
             if(confirm("このToDoを削除しますか？")) {
-                const todos = getTodos().filter(t => t.id !== id);
-                saveAll(getTasks(), todos, getStats());
+                saveAll(getTasks(), getTodos().filter(t => t.id !== id), getStats());
             }
         }
 
+        // 復習スケジュールの生成
         function completeTodo(id) {
             const todos = getTodos();
             const item = todos.find(t => t.id === id);
@@ -220,9 +217,8 @@
         }
 
         function deleteFullTask(id) {
-            if(confirm("全スケジュールを削除しますか？")) {
-                const tasks = getTasks().filter(t => t.id !== id);
-                saveAll(tasks, getTodos(), getStats());
+            if(confirm("全スケジュールを完全に削除しますか？")) {
+                saveAll(getTasks().filter(t => t.id !== id), getTodos(), getStats());
             }
         }
 
@@ -233,43 +229,37 @@
             const stats = getStats();
 
             document.getElementById('todoList').innerHTML = todos.map(t => `
-                <div class="task-item todo-item">
-                    <span>${t.name}</span>
-                    <div class="button-group">
-                        <button class="btn-delete" onclick="deleteTodo(${t.id})">削除</button>
-                        <button class="btn-done" onclick="completeTodo(${t.id})">完了</button>
-                    </div>
-                </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.85rem;">ToDoはありません</p>';
+                <div class="task-item todo-item"><span>${t.name}</span>
+                <div class="button-group">
+                    <button class="btn-delete" onclick="deleteTodo(${t.id})">削除</button>
+                    <button class="btn-done" onclick="completeTodo(${t.id})">完了</button>
+                </div></div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.85rem;">ToDoはありません</p>';
 
             document.getElementById('todayReviewList').innerHTML = tasks.filter(t => t.reviews.includes(today)).map(t => `
-                <div class="task-item review-item">
-                    <span>${t.name}</span>
-                    <button class="btn-done" onclick="completeReview(${t.id})">完了</button>
-                </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.85rem;">今日の復習はありません</p>';
+                <div class="task-item review-item"><span>${t.name}</span>
+                <button class="btn-done" onclick="completeReview(${t.id})">完了</button></div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.85rem;">今日の復習はありません</p>';
 
             document.getElementById('allTasksManagementList').innerHTML = tasks.map(t => `
-                <div class="task-item manage-item">
-                    <span>${t.name}</span>
-                    <button class="btn-delete" onclick="deleteFullTask(${t.id})">削除</button>
-                </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.85rem;">データはありません</p>';
+                <div class="task-item manage-item"><span>${t.name}</span><button class="btn-delete" onclick="deleteFullTask(${t.id})">削除</button></div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.85rem;">データはありません</p>';
 
             document.getElementById('streakCount').innerText = stats.streak;
             document.getElementById('totalDone').innerText = stats.total;
         }
 
-        // --- カレンダー設定 ---
+        // --- カレンダー制御: 今週を1行目にするロジック ---
         document.addEventListener('DOMContentLoaded', function() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridTwoWeeks', // 1. 初期表示：2週間
+                initialView: 'dayGridTwoWeeks',
                 locale: 'ja',
-                firstDay: 1, // 2. 月曜開始
-                initialDate: new Date(), // 3. 今日(今週)起点
+                firstDay: 1, // 月曜開始
                 headerToolbar: { left: 'prev', center: 'title', right: 'next today' },
                 views: { 
                     dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } },
-                    dayGridFourWeeks: { type: 'dayGrid', duration: { weeks: 4 } } // 4週間表示
+                    dayGridFourWeeks: { type: 'dayGrid', duration: { weeks: 4 } }
                 },
+                // 起動時・切替時に今週から始まるように調整
+                initialDate: new Date(),
                 events: function(info, success) {
                     const evs = getTasks().flatMap(t => t.reviews.map(d => ({ 
                         title: t.name, start: d, backgroundColor: '#4a90e2', borderColor: 'transparent', extendedProps: { taskId: t.id } 
@@ -279,7 +269,7 @@
                 eventClick: (info) => {
                     const tasks = getTasks();
                     const idx = tasks.findIndex(t => t.id === info.event.extendedProps.taskId);
-                    const newName = prompt("タスク名を変更:", tasks[idx].name);
+                    const newName = prompt("タスク名の変更:", tasks[idx].name);
                     if (newName && newName.trim() !== "") {
                         tasks[idx].name = newName;
                         saveAll(tasks, getTodos(), getStats());
@@ -291,9 +281,9 @@
                         titleEl.dataset.hasClick = "true";
                         titleEl.onclick = function() {
                             isMonthView = !isMonthView;
-                            // モード切り替え
+                            // ビュー変更
                             calendar.changeView(isMonthView ? 'dayGridFourWeeks' : 'dayGridTwoWeeks');
-                            // 指摘：常に今日(今週)を一番上に配置するための強制リセット
+                            // 指摘事項：切替時に今日を含む週を一番上にする
                             calendar.gotoDate(new Date());
                         };
                     }
