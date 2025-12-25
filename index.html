@@ -3,44 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>学習スケジューラー【最終版】</title>
-    
+    <title>学習スケジューラー</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-
     <style>
         :root { --primary-color: #4a90e2; --bg-color: #f4f7f6; --success-color: #2ecc71; --todo-color: #f39c12; --text-color: #333; }
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* カレンダーを強制的に表示させる設定 */
-        #calendar { 
-            min-height: 400px !important; /* 高さを強制確保 */
-            background: white; 
-            margin-top: 10px; 
-            border: 1px solid #eee;
-            border-radius: 8px;
-            overflow: hidden;
-        }
+        /* カレンダー設定 */
+        #calendar { min-height: 350px !important; background: white; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        .fc-toolbar-title { font-size: 0.85rem !important; font-weight: bold !important; padding: 6px 12px !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; cursor: pointer !important; }
+        .fc .fc-button { padding: 4px 8px !important; font-size: 0.7rem !important; background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; }
 
-        /* タイトル・ボタンのデザイン */
-        .fc-toolbar-title { font-size: 0.9rem !important; cursor: pointer; padding: 5px 10px; border: 1px solid #ddd; border-radius: 5px; background: #fff; }
-        .fc-button { font-size: 0.7rem !important; }
-
-        /* UIパーツ */
+        /* UIコンポーネント */
         .status-panel { display: flex; justify-content: space-around; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 10px; margin-bottom: 15px; }
         .status-value { display: block; font-size: 1.4rem; font-weight: bold; color: var(--primary-color); text-align: center; }
         .status-label { font-size: 0.65rem; color: #777; }
-        
-        .input-area { display: flex; gap: 6px; margin-bottom: 10px; }
+        .input-area { display: flex; gap: 6px; margin-bottom: 15px; }
         input[type="text"] { flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
         .add-btn { background-color: var(--todo-color); color: white; border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        
         .task-item { background: #fff; border: 1px solid #eee; border-left: 5px solid #ccc; padding: 10px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; font-size: 0.85rem; }
         .btn-done { background-color: var(--success-color); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
-        
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 5px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; }
     </style>
@@ -48,7 +34,7 @@
 <body>
     <div class="container">
         <div class="auth-header"><button id="loginBtn" onclick="handleAuth()">☁️ ログイン</button></div>
-        <h1 style="font-size:1.2rem; text-align:center; color:var(--primary-color);">学習スケジューラー</h1>
+        <h1 style="font-size:1.2rem; text-align:center; color:var(--primary-color); margin: 0 0 15px 0;">学習スケジューラー</h1>
         
         <div class="status-panel">
             <div><span class="status-value" id="streakCount">0</span><span class="status-label">🔥 継続日数</span></div>
@@ -60,22 +46,23 @@
             <button class="add-btn" onclick="addTodo()">登録</button>
         </div>
 
+        <h2 style="font-size:0.9rem; border-left:4px solid var(--todo-color); padding-left:8px;">ToDoリスト</h2>
         <div id="todoList"></div>
-        <h2 style="font-size:0.95rem; border-left:4px solid var(--primary-color); padding-left:8px;">今日の復習</h2>
+
+        <h2 style="font-size:0.9rem; border-left:4px solid var(--primary-color); padding-left:8px; margin-top:15px;">今日の復習</h2>
         <div id="todayReviewList"></div>
 
-        <h2 style="font-size:0.95rem; border-left:4px solid var(--primary-color); padding-left:8px; margin-top:20px;">カレンダー</h2>
+        <h2 style="font-size:0.9rem; border-left:4px solid var(--primary-color); padding-left:8px; margin-top:20px;">カレンダー</h2>
         <div id="calendar"></div>
-        <p style="font-size:0.7rem; color:#999; text-align:center; margin-top:10px;">タイトルをタップ：週 → 今日 → 月</p>
+        <p style="font-size:0.65rem; color:#999; text-align:center; margin-top:10px;">タイトルをタップ：2週間 → 1週間 → 月</p>
 
-        <div style="margin-top: 40px; opacity: 0.5;">
-            <h2 style="font-size:0.9rem;">全タスク（削除用）</h2>
+        <div style="margin-top: 40px; opacity: 0.4;">
+            <h2 style="font-size:0.8rem;">全タスク管理（削除）</h2>
             <div id="allTasksList"></div>
         </div>
     </div>
 
     <script>
-        // --- 設定 ---
         const firebaseConfig = {
             apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
             authDomain: "my-study-app-6a0b6.firebaseapp.com",
@@ -87,13 +74,11 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-
         let currentUser = null;
         let calendar = null;
         let vIdx = 0;
-        const vModes = ['dayGridWeek', 'listDay', 'dayGridMonth'];
+        const vModes = ['dayGridTwoWeeks', 'dayGridWeek', 'dayGridMonth']; // 2週間 → 1週間 → 月
 
-        // --- データ管理 ---
         function getData(key) { return JSON.parse(localStorage.getItem(key)) || []; }
         function getStats() { return JSON.parse(localStorage.getItem('myStats')) || { total: 0, streak: 0, lastDate: "" }; }
 
@@ -106,7 +91,6 @@
             if (calendar) calendar.refetchEvents();
         }
 
-        // --- アプリ機能 ---
         function addTodo() {
             const input = document.getElementById('todoInput');
             if (!input.value) return;
@@ -145,13 +129,12 @@
         }
 
         function deleteItem(id) {
-            if(confirm("このタスクを完全に削除しますか？")) {
+            if(confirm("タスクを削除しますか？")) {
                 const tasks = getData('myTasks').filter(t => t.id !== id);
                 saveAll(tasks, getData('myTodos'), getStats());
             }
         }
 
-        // --- 描画 ---
         function render() {
             const today = new Date().toISOString().split('T')[0];
             const todos = getData('myTodos');
@@ -161,12 +144,12 @@
             document.getElementById('todoList').innerHTML = todos.map(t => `
                 <div class="task-item" style="border-left-color: var(--todo-color)">
                     <span>${t.name}</span><button class="btn-done" onclick="completeTodo(${t.id})">完了</button>
-                </div>`).join('');
+                </div>`).join('') || '<p style="text-align:center; color:#999; font-size:0.7rem;">予定なし</p>';
 
             document.getElementById('todayReviewList').innerHTML = tasks.filter(t => t.reviews.includes(today)).map(t => `
                 <div class="task-item" style="border-left-color: var(--primary-color)">
                     <span>${t.name}</span><button class="btn-done" onclick="completeReview(${t.id})">完了</button>
-                </div>`).join('') || '<p style="text-align:center; color:#999; font-size:0.75rem;">今日の復習はありません</p>';
+                </div>`).join('') || '<p style="text-align:center; color:#999; font-size:0.7rem;">今日の復習なし</p>';
 
             document.getElementById('allTasksList').innerHTML = tasks.map(t => `
                 <div class="task-item"><span>${t.name}</span><button class="btn-done" style="background:#999" onclick="deleteItem(${t.id})">削除</button></div>
@@ -176,7 +159,6 @@
             document.getElementById('totalDone').innerText = stats.total;
         }
 
-        // --- 認証 ---
         auth.onAuthStateChanged(user => {
             currentUser = user;
             if (user) {
@@ -198,20 +180,20 @@
             else { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
         }
 
-        // --- カレンダー初期化 ---
         document.addEventListener('DOMContentLoaded', function() {
-            if (typeof FullCalendar === 'undefined') {
-                document.getElementById('calendar').innerHTML = "<p style='color:red; padding:20px;'>エラー: カレンダーのプログラムを読み込めません。ネット接続を確認してください。</p>";
-                return;
-            }
-
-            const calendarEl = document.getElementById('calendar');
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridWeek',
+            calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+                initialView: 'dayGridTwoWeeks',
                 locale: 'ja',
                 height: 'auto',
                 headerToolbar: { left: 'prev', center: 'title', right: 'next' },
+                titleFormat: function(info) {
+                    const s = info.start.marker;
+                    if (calendar.view.type === 'dayGridMonth') return `${s.getFullYear()}年 ${s.getMonth() + 1}月`;
+                    const e = new Date(info.end.marker); e.setDate(e.getDate() - 1);
+                    return `${s.getMonth() + 1}/${s.getDate()} - ${e.getMonth() + 1}/${e.getDate()}`;
+                },
                 dayHeaderContent: function(arg) { return (arg.date.getMonth() + 1) + '/' + arg.date.getDate(); },
+                views: { dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
                 events: function(info, success) {
                     const evs = getData('myTasks').flatMap(t => t.reviews.map(d => ({
                         title: t.name, start: d, backgroundColor: '#4a90e2', borderColor: 'transparent'
