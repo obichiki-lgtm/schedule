@@ -13,17 +13,17 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* カレンダーヘッダー設定 */
+        /* ヘッダー・タイトル設定 */
         .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; position: relative !important; margin-bottom: 20px !important; }
-        .fc-toolbar-chunk:nth-child(2) { position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; z-index: 10; }
-        .fc-toolbar-title { font-size: 0.85rem !important; font-weight: bold !important; padding: 6px 12px !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; cursor: pointer !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .fc .fc-button { padding: 2px 6px !important; font-size: 0.65rem !important; background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; }
+        .fc-toolbar-chunk:nth-child(2) { position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; z-index: 100; }
+        .fc-toolbar-title { font-size: 0.9rem !important; font-weight: bold !important; padding: 6px 12px !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; cursor: pointer !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .fc .fc-button { padding: 4px 8px !important; font-size: 0.7rem !important; background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; }
 
-        /* グリッド表示の高さ調整 */
+        /* カレンダー・リストの高さ調整 */
         .fc-daygrid-day-frame { min-height: 50px !important; }
         .fc-list-event-title { cursor: pointer; font-size: 0.85rem; }
 
-        /* UIコンポーネント */
+        /* UIパーツ */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 5px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
         #loginBtn.logged-in { background: #e3f2fd; color: var(--primary-color); }
@@ -57,7 +57,7 @@
             <div class="status-item"><span class="status-value" id="totalDone">0</span><span class="status-label">🏆 累計完了</span></div>
         </div>
 
-        <h2>ToDoリスト (新規)</h2>
+        <h2>ToDoリスト (新規登録)</h2>
         <div class="input-area">
             <input type="text" id="todoInput" placeholder="学習内容を入力">
             <button class="add-btn" onclick="addTodo()">登録</button>
@@ -69,10 +69,10 @@
 
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">タイトルをタップ：表示切替<br>1. 2週間(カレンダー) → 2. 1週間(カレンダー) → 3. 今日(リスト) → 4. 月(カレンダー)</p>
+        <p class="hint">タイトル（年月）をタップして切替：<br>2週間(カレンダー) → 1週間(カレンダー) → 今日(リスト) → 月(カレンダー)</p>
 
         <div style="margin-top: 40px; opacity: 0.6;">
-            <h2>全タスク管理・削除</h2>
+            <h2>全タスクの管理・削除</h2>
             <div id="allTasksList"></div>
         </div>
     </div>
@@ -94,12 +94,12 @@
         let calendar;
         let viewIndex = 0;
         
-        // 【重要】表示順序と形式を定義
+        // 【確定修正】ご指示通りの順番と形式
         const viewModes = [
-            'dayGridTwoWeeks', // 2週間（グリッド/カレンダー形式）
-            'dayGridWeek',     // 1週間（グリッド/カレンダー形式）
-            'listDay',         // 今日（リスト形式）
-            'dayGridMonth'     // 月（グリッド/カレンダー形式）
+            'dayGridTwoWeeks', // 1. 2週間（カレンダー形式）
+            'dayGridWeek',     // 2. 1週間（カレンダー形式）
+            'listDay',         // 3. 今日（リスト形式）
+            'dayGridMonth'     // 4. 月（カレンダー形式）
         ];
 
         auth.onAuthStateChanged(user => {
@@ -119,13 +119,14 @@
         function initCalendar() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridTwoWeeks', 
+                initialView: 'dayGridTwoWeeks', // 最初は2週間カレンダー
                 locale: 'ja',
                 height: 'auto',
                 views: {
                     dayGridTwoWeeks: { 
                         type: 'dayGrid', 
-                        duration: { weeks: 2 } 
+                        duration: { weeks: 2 }, 
+                        buttonText: '2週間' 
                     }
                 },
                 headerToolbar: { left: '', center: 'title', right: 'prev,next,today' },
@@ -134,7 +135,9 @@
                 datesSet: function() {
                     const titleEl = document.querySelector('.fc-toolbar-title');
                     if (titleEl) {
-                        titleEl.onclick = () => {
+                        // 既存のイベントリスナーを解除して再設定
+                        titleEl.onclick = null; 
+                        titleEl.onclick = function() {
                             viewIndex = (viewIndex + 1) % viewModes.length;
                             calendar.changeView(viewModes[viewIndex]);
                         };
@@ -144,7 +147,7 @@
             calendar.render();
         }
 
-        // --- データ管理ロジック ---
+        // --- データ同期・管理ロジック ---
         function getTasks() { return JSON.parse(localStorage.getItem('myTasks')) || []; }
         function getTodos() { return JSON.parse(localStorage.getItem('myTodos')) || []; }
         function getStats() { return JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 }; }
@@ -171,6 +174,7 @@
             }
         }
 
+        // --- アプリ機能ロジック ---
         function addTodo() {
             const input = document.getElementById('todoInput');
             if (!input.value) return;
@@ -216,7 +220,7 @@
             if (type === 'todo') {
                 saveAllData(getTasks(), getStats(), getTodos().filter(t => t.id !== id));
             } else {
-                if(!confirm("全スケジュールを削除しますか？")) return;
+                if(!confirm("削除しますか？")) return;
                 saveAllData(getTasks().filter(t => t.id !== id), getStats(), getTodos());
             }
         }
