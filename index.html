@@ -13,18 +13,15 @@
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* カレンダーデザイン */
+        /* カレンダー枠消し */
         #calendar { margin-top: 15px; border: none !important; }
         .fc { border: none !important; }
-        .fc-theme-standard .fc-scrollgrid { border: none !important; }
         .fc-theme-standard td, .fc-theme-standard th { border: none !important; border-bottom: 1px solid #f0f0f0 !important; }
-        .fc-daygrid-day-frame { background: transparent !important; min-height: 55px !important; }
         .fc-col-header { display: none; }
         .fc-event { border-radius: 8px !important; padding: 2px 5px !important; font-size: 0.65rem !important; cursor: pointer; border: none !important; }
 
-        /* UIパーツ */
+        /* ヘッダー・入力エリア */
         .fc-toolbar-title { font-size: 0.9rem !important; font-weight: bold !important; padding: 8px 15px !important; border: 1px solid #eee !important; border-radius: 20px !important; cursor: pointer !important; background: #fff; }
-        .fc-button { background: none !important; border: none !important; color: #ccc !important; }
         .status-panel { display: flex; justify-content: space-around; background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 20px; }
         .status-value { display: block; font-size: 1.5rem; font-weight: bold; color: var(--primary-color); text-align: center; }
         .status-label { font-size: 0.7rem; color: #888; }
@@ -32,13 +29,30 @@
         input[type="text"] { flex: 1; padding: 12px; border: 1px solid #eee; border-radius: 10px; font-size: 16px; outline: none; }
         .add-btn { background-color: var(--todo-color); color: white; border: none; padding: 0 15px; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
-        /* リストアイテム */
-        .task-item { background: #fff; border: 1px solid #eee; border-left: 5px solid #ccc; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-radius: 10px; font-size: 0.85rem; }
-        .button-group { display: flex; gap: 5px; }
-        .btn-done { background-color: var(--success-color); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
-        .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; opacity: 0.8; }
-        .btn-delete:hover { opacity: 1; }
+        /* ToDoリストのアイテムデザイン */
+        .task-item { 
+            background: #fff; 
+            border: 1px solid #eee; 
+            border-left: 5px solid var(--todo-color); 
+            padding: 12px; 
+            margin-bottom: 8px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-radius: 10px; 
+            font-size: 0.85rem; 
+        }
+        
+        /* ボタンを横に並べる設定 */
+        .button-group { 
+            display: flex; 
+            gap: 8px; 
+            align-items: center;
+        }
 
+        .btn-done { background-color: var(--success-color); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+        .btn-delete-item { background-color: #bdc3c7; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
+        
         .auth-header { text-align: right; margin-bottom: 5px; }
         #loginBtn { background: none; border: none; font-size: 11px; color: #bbb; cursor: pointer; }
     </style>
@@ -58,7 +72,7 @@
             <button class="add-btn" onclick="addTodo()">登録</button>
         </div>
 
-        <h2 style="font-size:0.9rem; border-left:4px solid var(--todo-color); padding-left:8px;">ToDoリスト</h2>
+        <h2 style="font-size:0.9rem; border-left:4px solid var(--todo-color); padding-left:8px;">ToDo</h2>
         <div id="todoList"></div>
 
         <h2 style="font-size:0.9rem; border-left:4px solid var(--primary-color); padding-left:8px; margin-top:20px;">今日の復習</h2>
@@ -66,11 +80,6 @@
 
         <h2 style="font-size:0.9rem; border-left:4px solid var(--primary-color); padding-left:8px; margin-top:25px;">カレンダー</h2>
         <div id="calendar"></div>
-        
-        <div style="margin-top: 50px; opacity: 0.1; font-size: 0.7rem;">
-            <p>システム管理用</p>
-            <div id="allTasksList"></div>
-        </div>
     </div>
 
     <script>
@@ -103,29 +112,16 @@
             if (calendar) calendar.refetchEvents();
         }
 
-        // --- 機能：名前編集 ---
-        function editTaskName(id) {
-            let tasks = getTasks();
-            const idx = tasks.findIndex(t => t.id === id);
-            if (idx !== -1) {
-                const newName = prompt("名前を変更しますか？", tasks[idx].name);
-                if (newName && newName.trim() !== "") { 
-                    tasks[idx].name = newName; 
-                    save(tasks, getTodos(), getStats()); 
-                }
+        // --- ToDo削除機能 ---
+        function deleteTodo(id) {
+            // 確認バナーを表示
+            if(confirm("本当にこのToDoを削除しますか？\n（復習スケジュールには登録されません）")) {
+                const todos = getTodos().filter(t => t.id !== id);
+                save(getTasks(), todos, getStats());
             }
         }
 
-        function addTodo() {
-            const input = document.getElementById('todoInput');
-            if (!input.value.trim()) return;
-            const todos = getTodos();
-            todos.push({ id: Date.now(), name: input.value });
-            save(getTasks(), todos, getStats());
-            input.value = "";
-        }
-
-        // ToDoから復習タスクへ移行
+        // --- 完了（復習へ移行） ---
         function completeTodo(id) {
             const todos = getTodos();
             const item = todos.find(t => t.id === id);
@@ -139,15 +135,16 @@
             save(tasks, todos.filter(t => t.id !== id), getStats());
         }
 
-        // NEW: ToDoリストからの削除（復習には追加されない）
-        function deleteTodo(id) {
-            if(confirm("このToDoを本当に削除しますか？\n（カレンダーには登録されません）")) {
-                const todos = getTodos().filter(t => t.id !== id);
-                save(getTasks(), todos, getStats());
-            }
+        function addTodo() {
+            const input = document.getElementById('todoInput');
+            if (!input.value.trim()) return;
+            const todos = getTodos();
+            todos.push({ id: Date.now(), name: input.value });
+            save(getTasks(), todos, getStats());
+            input.value = "";
         }
 
-        // 魔法のリスケジュール
+        // --- 復習完了（リスケ機能付き） ---
         function completeReview(id) {
             const todayStr = new Date().toISOString().split('T')[0];
             const today = new Date(todayStr);
@@ -164,7 +161,7 @@
                     d.setDate(d.getDate() + diffDays);
                     return d.toISOString().split('T')[0];
                 });
-                alert(`${diffDays} 日の遅れを調整し、未来のスケジュールを再構築しました ✨`);
+                alert(`${diffDays} 日の遅れを自動調整しました ✨`);
             }
 
             const stats = getStats();
@@ -177,24 +174,17 @@
             save(tasks, getTodos(), stats);
         }
 
-        function deleteTask(id) {
-            if(confirm("この学習データを完全に削除しますか？")) {
-                save(getTasks().filter(t => t.id !== id), getTodos(), getStats());
-            }
-        }
-
-        // --- 描画 ---
         function renderUI() {
             const today = new Date().toISOString().split('T')[0];
             const tasks = getTasks();
             const stats = getStats();
 
-            // ToDoリスト：削除ボタンを追加
+            // ToDoリスト：完了ボタンの左に削除ボタンを確実に配置
             document.getElementById('todoList').innerHTML = getTodos().map(t => `
-                <div class="task-item" style="border-left-color: var(--todo-color)">
+                <div class="task-item">
                     <span>${t.name}</span>
                     <div class="button-group">
-                        <button class="btn-delete" onclick="deleteTodo(${t.id})">削除</button>
+                        <button class="btn-delete-item" onclick="deleteTodo(${t.id})">削除</button>
                         <button class="btn-done" onclick="completeTodo(${t.id})">完了</button>
                     </div>
                 </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.75rem;">ToDoはありません</p>';
@@ -203,10 +193,6 @@
                 <div class="task-item" style="border-left-color: var(--primary-color)">
                     <span>${t.name}</span><button class="btn-done" onclick="completeReview(${t.id})">今日実施</button>
                 </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.75rem;">今日の復習はありません</p>';
-
-            document.getElementById('allTasksList').innerHTML = tasks.map(t => `
-                <div class="task-item"><span>${t.name}</span><button class="btn-done" style="background:#ddd" onclick="deleteTask(${t.id})">削除</button></div>
-            `).join('');
 
             document.getElementById('streakCount').innerText = stats.streak;
             document.getElementById('totalDone').innerText = stats.total;
@@ -239,7 +225,6 @@
                 height: 'auto',
                 headerToolbar: { left: 'prev', center: 'title', right: 'next' },
                 dayCellContent: (arg) => (arg.date.getMonth() + 1) + '/' + arg.date.getDate(),
-                views: { dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
                 events: (info, success) => {
                     const tasks = getTasks();
                     let events = [];
@@ -248,17 +233,17 @@
                         t.reviews.forEach(d => {
                             const futureReviews = t.reviews.filter(rd => rd > d).length;
                             const roundNum = totalRounds - futureReviews;
-                            events.push({ 
-                                title: `${t.name} (${roundNum}回目)`, 
-                                start: d, 
-                                backgroundColor: '#4a90e2', 
-                                extendedProps: { taskId: t.id } 
-                            });
+                            events.push({ title: `${t.name} (${roundNum}回目)`, start: d, backgroundColor: '#4a90e2', extendedProps: { taskId: t.id } });
                         });
                     });
                     success(events);
                 },
-                eventClick: (info) => editTaskName(info.event.extendedProps.taskId),
+                eventClick: (info) => {
+                    const tasks = getTasks();
+                    const idx = tasks.findIndex(t => t.id === info.event.extendedProps.taskId);
+                    const newName = prompt("名前を変更しますか？", tasks[idx].name);
+                    if (newName) { tasks[idx].name = newName; save(tasks, getTodos(), getStats()); }
+                },
                 datesSet: () => {
                     const title = document.querySelector('.fc-toolbar-title');
                     if (title) title.onclick = () => {
