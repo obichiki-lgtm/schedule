@@ -49,7 +49,7 @@
         .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         .btn-resched { background-color: #888; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         
-        /* カレンダー */
+        /* カレンダーデザイン */
         #calendar { margin-top: 10px; border-radius: 15px; border: 1px solid #eee; padding: 5px; background: #fff; }
         .fc-toolbar-title { 
             font-size: 1.1rem !important; font-weight: bold !important; cursor: pointer; 
@@ -58,7 +58,7 @@
         }
         .fc .fc-button-primary { background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; font-size: 0.75rem !important; }
 
-        /* カスタムモーダル */
+        /* カスタム編集モーダル */
         .modal-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 9999;
@@ -68,7 +68,7 @@
             box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
         }
         .modal-content label { display: block; margin-top: 15px; font-size: 0.85rem; color: #666; }
-        .modal-content input { width: 100%; box-sizing: border-box; margin-top: 5px; }
+        .modal-content input { width: 100%; box-sizing: border-box; margin-top: 5px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
         .modal-footer { display: flex; gap: 10px; margin-top: 25px; }
         .modal-footer button { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; }
         .btn-cancel { background: #eee; color: #666; }
@@ -100,7 +100,7 @@
 
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">年月タップ：2週 ↔ 4週 (常に今週起点)<br>日付をタップ：新規記録<br>予定をタップ：同時編集と連動移動</p>
+        <p class="hint">年月タップ：2週 ↔ 4週 (常に今週起点)<br>日付をタップ：新規記録<br>予定をタップ：タスク名と日程を同時編集</p>
 
         <h2 style="border-left-color: #ccc; color: #888;">一括削除</h2>
         <div id="allTasksManagementList"></div>
@@ -109,9 +109,9 @@
     <div class="modal-overlay" id="editModal">
         <div class="modal-content">
             <h3 style="margin: 0 0 15px; font-size: 1.1rem;">学習内容の編集</h3>
-            <label>タスク名</label>
+            <label>タスク名を編集:</label>
             <input type="text" id="editTaskName">
-            <label>この回以降の日付</label>
+            <label>この回以降の日程を変更 (YYYY-MM-DD):</label>
             <input type="date" id="editTaskDate">
             <div class="modal-footer">
                 <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
@@ -136,7 +136,7 @@
         let currentUser = null;
         let calendar = null;
         let isMonthView = false;
-        let currentEditingData = null; // 編集中の情報を保持
+        let currentEditingData = null;
 
         auth.onAuthStateChanged(user => {
             currentUser = user;
@@ -175,7 +175,7 @@
             }
         }
 
-        // --- 精密ロジック：インデックス連動リスケジュール ---
+        // --- パターンB-1：絶対移動ロジック ---
         function rescheduleTaskByIndex(taskId, targetDateStr, oldDateStr, reviewIdx, newName) {
             let tasks = getTasks();
             let task = tasks.find(t => t.id === taskId);
@@ -205,21 +205,13 @@
             document.getElementById('editModal').style.display = 'flex';
         }
 
-        function closeModal() {
-            document.getElementById('editModal').style.display = 'none';
-        }
+        function closeModal() { document.getElementById('editModal').style.display = 'none'; }
 
         document.getElementById('saveModalBtn').onclick = () => {
             const newName = document.getElementById('editTaskName').value;
             const newDate = document.getElementById('editTaskDate').value;
             if (newName && newDate) {
-                rescheduleTaskByIndex(
-                    currentEditingData.taskId, 
-                    newDate, 
-                    currentEditingData.oldDate, 
-                    currentEditingData.reviewIdx, 
-                    newName
-                );
+                rescheduleTaskByIndex(currentEditingData.taskId, newDate, currentEditingData.oldDate, currentEditingData.reviewIdx, newName);
                 closeModal();
             }
         };
@@ -325,7 +317,7 @@
                         titleEl.onclick = () => {
                             isMonthView = !isMonthView;
                             calendar.changeView(isMonthView ? 'dayGridFourWeeks' : 'dayGridTwoWeeks');
-                            calendar.gotoDate(new Date()); 
+                            calendar.gotoDate(new Date()); // 今日を1行目に固定
                         };
                     }
                 }
