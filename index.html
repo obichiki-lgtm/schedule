@@ -13,64 +13,69 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* --- カレンダーヘッダーの再構築 --- */
+        /* --- カレンダーヘッダーのスマホ最適化レイアウト --- */
         .fc .fc-toolbar {
-            display: grid !important;
-            /* 左(空) | 中(年月) | 右(ボタン) の3カラムに分ける */
-            grid-template-columns: 1fr auto 1fr !important;
+            display: flex !important;
+            flex-direction: row !important;
             align-items: center !important;
-            margin-bottom: 20px !important;
-            padding: 0 !important;
-            height: auto !important;
+            justify-content: space-between !important; /* 両端と中央に配置 */
+            margin-bottom: 15px !important;
+            position: relative !important;
+            height: 40px !important;
         }
 
-        /* 中央：タイトル領域 */
+        /* 1. 左側のスペース（中央を維持するためのダミー） */
+        .fc-toolbar-chunk:nth-child(1) {
+            flex: 1 !important;
+            display: flex !important;
+        }
+
+        /* 2. 中央：タイトル（年月） */
         .fc-toolbar-chunk:nth-child(2) {
-            grid-column: 2 !important;
+            flex: 0 1 auto !important;
             display: flex !important;
             justify-content: center !important;
+            position: absolute !important; /* 画面の真ん中に固定 */
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            z-index: 1 !important;
         }
 
         .fc-toolbar-title {
-            font-size: 0.95rem !important;
+            font-size: 0.9rem !important;
             font-weight: bold !important;
-            padding: 6px 12px !important;
+            padding: 4px 8px !important;
             border: 1px solid #ddd !important;
-            border-radius: 8px !important;
+            border-radius: 6px !important;
             background: white !important;
-            cursor: pointer !important;
             white-space: nowrap !important;
-            user-select: none !important;
+            cursor: pointer !important;
         }
         .fc-toolbar-title::after { content: " 🔄"; font-size: 0.7rem; opacity: 0.5; }
 
-        /* 右側：ボタン領域（ここを右揃えに固定） */
-        .fc-toolbar-chunk:nth-child(1) {
-            grid-column: 3 !important;
+        /* 3. 右側：ボタン群（< > today） */
+        .fc-toolbar-chunk:nth-child(3) {
+            flex: 1 !important;
             display: flex !important;
             justify-content: flex-end !important;
-            gap: 4px !important;
+            gap: 2px !important;
+            z-index: 2 !important; /* ボタンを上に */
         }
 
-        /* 左側（何も置かない） */
-        .fc-toolbar-chunk:nth-child(3) { display: none !important; }
-
-        /* ボタンのデザイン微調整 */
+        /* ボタンの最小化（スマホで重ならないように） */
         .fc .fc-button {
-            padding: 2px 6px !important;
-            height: 30px !important;
-            font-size: 0.75rem !important;
+            padding: 1px 4px !important;
+            height: 26px !important;
+            font-size: 0.7rem !important;
             background-color: #fff !important;
             color: #444 !important;
             border: 1px solid #ddd !important;
             box-shadow: none !important;
-            font-weight: bold !important;
         }
-        .fc-today-button { font-size: 0.7rem !important; }
-        .fc .fc-button-primary:not(:disabled):active, 
-        .fc .fc-button-primary:not(:disabled).fc-button-active { background-color: #f0f0f0 !important; border-color: #ccc !important; color: #333 !important; }
+        .fc-today-button { font-size: 0.65rem !important; padding: 0 5px !important; }
+        .fc .fc-icon { font-size: 0.8em !important; }
 
-        /* その他UIパーツ */
+        /* その他UI（変更なし） */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 5px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
         #loginBtn.logged-in { background: #e3f2fd; color: var(--primary-color); }
@@ -149,9 +154,9 @@
                 locale: 'ja',
                 aspectRatio: 1.2,
                 headerToolbar: {
-                    left: 'prev,next,today', // ここにボタンを置きCSSで右のカラムに飛ばす
-                    center: 'title',        // 真ん中のカラムに固定
-                    right: ''
+                    left: '', 
+                    center: 'title', 
+                    right: 'prev,next,today'
                 },
                 titleFormat: function(info) {
                     const start = info.start.marker;
@@ -160,13 +165,15 @@
                     const startMonth = start.getMonth() + 1;
                     const actualEnd = new Date(end);
                     actualEnd.setDate(actualEnd.getDate() - 1);
+                    const endYear = actualEnd.getFullYear();
                     const endMonth = actualEnd.getMonth() + 1;
 
                     if (startMonth === endMonth) {
                         return `${startYear}年${startMonth}月`;
                     } else {
-                        // 年月またぎの表記
-                        return `${startYear}年${startMonth}月 – ${endMonth}月`;
+                        // 年が同じなら「月」のみ、年が違えばそのまま表示（スッキリ形式）
+                        const endStr = (startYear === endYear) ? `${endMonth}月` : `${endYear}年${endMonth}月`;
+                        return `${startYear}年${startMonth}月 – ${endStr}`;
                     }
                 },
                 views: { twoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
@@ -187,7 +194,7 @@
             calendar.render();
         }
 
-        // --- データ処理 (省略なし) ---
+        // --- データロジック ---
         function saveAllData(tasks, stats) {
             localStorage.setItem('myTasks', JSON.stringify(tasks));
             localStorage.setItem('myStats', JSON.stringify(stats));
