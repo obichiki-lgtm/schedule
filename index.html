@@ -11,7 +11,7 @@
             --bg-color: #f8fafb;
             --success-color: #2ecc71;
             --todo-color: #f39c12;
-            --danger-color: #bdc3c7;
+            --danger-color: #ff5e5e; /* 削除用の赤色 */
             --text-color: #333;
         }
 
@@ -40,6 +40,8 @@
 
         .button-group { display: flex; gap: 8px; }
         .btn-done { background-color: var(--success-color); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
+        
+        /* 指摘反映：削除ボタンを赤色に */
         .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         
         /* カレンダー・カスタマイズ */
@@ -47,30 +49,29 @@
         
         /* ヘッダーのレイアウト調整 */
         .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; }
-        .fc-toolbar-chunk:nth-child(1) { flex: 1; visibility: hidden; } /* 左側を空ける */
-        .fc-toolbar-chunk:nth-child(2) { flex: 2; text-align: center; } /* 中央：タイトル */
-        .fc-toolbar-chunk:nth-child(3) { flex: 1; display: flex; justify-content: flex-end; gap: 4px; } /* 右側：ボタン群 */
+        .fc-toolbar-chunk:nth-child(1) { flex: 1; visibility: hidden; } 
+        .fc-toolbar-chunk:nth-child(2) { flex: 2; text-align: center; } 
+        .fc-toolbar-chunk:nth-child(3) { flex: 1; display: flex; justify-content: flex-end; gap: 4px; } 
 
-        /* 年月タイトルのスタイル（クリック可能にする） */
+        /* 指摘反映：年月の青い棒を消去し、純粋なテキストに */
         .fc-toolbar-title { 
             font-size: 1.15rem !important; 
             font-weight: bold !important; 
             cursor: pointer; 
             padding: 5px 10px;
             border-radius: 8px;
+            border-left: none !important; /* 青い棒を強制消去 */
             transition: background 0.2s;
             display: inline-block;
         }
-        .fc-toolbar-title:hover { background-color: #f0f4f8; color: var(--primary-color); }
+        .fc-toolbar-title:hover { background-color: #f0f4f8; }
 
-        /* 右側ボタンのスタイル（image_ed6346.png風） */
         .fc .fc-button-primary { 
             background-color: #444 !important; 
             border: none !important; 
             padding: 6px 10px !important;
             font-size: 0.8rem !important;
         }
-        .fc .fc-button-primary:focus { box-shadow: none !important; }
 
         .hint { font-size: 0.75rem; color: #aaa; text-align: center; margin-top: 12px; }
     </style>
@@ -99,7 +100,7 @@
         <div id="calendar"></div>
         <p class="hint">年月をタップ：1ヶ月 ↔ 2週間 切り替え</p>
 
-        <h2 style="border-left-color: #ccc; color: #888;">スケジュール一括削除</h2>
+        <h2 style="border-left-color: #ccc; color: #888;">全データの管理</h2>
         <div id="allTasksManagementList"></div>
     </div>
 
@@ -219,15 +220,8 @@
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 locale: 'ja',
-                // ヘッダーのボタン設定：パターンB [<] [>] [today]
-                headerToolbar: {
-                    left: '', 
-                    center: 'title', 
-                    right: 'prev,next today'
-                },
-                views: {
-                    dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } }
-                },
+                headerToolbar: { left: '', center: 'title', right: 'prev,next today' },
+                views: { dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
                 events: generateEvents(getTasks()),
                 eventClick: (info) => {
                     const tasks = getTasks();
@@ -235,14 +229,12 @@
                     const newName = prompt("名前編集", tasks[idx].name);
                     if (newName) { tasks[idx].name = newName; save(tasks, getTodos(), getStats()); }
                 },
-                // カレンダー描画後にタイトルへクリックイベントを付与
                 datesSet: function() {
                     const titleEl = document.querySelector('.fc-toolbar-title');
                     if (titleEl && !titleEl.dataset.hasClick) {
                         titleEl.dataset.hasClick = "true";
                         titleEl.onclick = function() {
-                            const currentView = calendar.view.type;
-                            calendar.changeView(currentView === 'dayGridMonth' ? 'dayGridTwoWeeks' : 'dayGridMonth');
+                            calendar.changeView(calendar.view.type === 'dayGridMonth' ? 'dayGridTwoWeeks' : 'dayGridMonth');
                         };
                     }
                 }
