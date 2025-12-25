@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>学習スケジューラー Pro+</title>
+    <title>学習スケジューラー</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -14,14 +14,14 @@
             --bg-color: #f8fafb;
             --success-color: #2ecc71;
             --todo-color: #f39c12;
-            --danger-color: #ff4d4f; /* 指摘：削除ボタン用の赤 */
+            --danger-color: #ff4d4f; /* 削除ボタン用の赤 */
             --text-color: #333;
         }
 
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* クラウドログインヘッダー */
+        /* ログインヘッダー */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 6px 14px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
 
@@ -35,7 +35,7 @@
         input[type="text"] { flex: 1; padding: 14px; border: 1px solid #e0e0e0; border-radius: 12px; font-size: 16px; outline: none; }
         .add-btn { background-color: var(--todo-color); color: white; border: none; padding: 0 20px; border-radius: 12px; font-weight: bold; cursor: pointer; }
 
-        /* 見出し */
+        /* セクション見出し */
         h2 { font-size: 1.1rem; border-left: 5px solid var(--primary-color); padding-left: 12px; margin: 30px 0 15px; color: #444; }
         .todo-header { border-left-color: var(--todo-color); }
 
@@ -47,32 +47,27 @@
 
         .button-group { display: flex; gap: 8px; }
         .btn-done { background-color: var(--success-color); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
-        
-        /* 指摘：削除ボタンを赤色に */
         .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         
-        /* カレンダー・カスタマイズ */
+        /* カレンダー調整 */
         #calendar { margin-top: 10px; border-radius: 15px; border: 1px solid #eee; padding: 5px; background: #fff; }
-        
         .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; }
         .fc-toolbar-chunk:nth-child(1) { flex: 1; } 
         .fc-toolbar-chunk:nth-child(2) { flex: 2; text-align: center; } 
         .fc-toolbar-chunk:nth-child(3) { flex: 1; display: flex; justify-content: flex-end; gap: 4px; } 
 
-        /* 指摘：年月の青い棒を完全に消去 */
+        /* 年月タイトルの青い棒を消去 */
         .fc-toolbar-title { 
             font-size: 1.1rem !important; 
             font-weight: bold !important; 
             cursor: pointer; 
-            padding: 6px 12px;
+            padding: 6px 16px;
             border-radius: 8px;
-            border-left: none !important; 
             border: 1px solid #eee;
             background: #fff;
-            transition: background 0.2s;
+            border-left: none !important; 
             display: inline-block;
         }
-        .fc-toolbar-title:hover { background-color: #f0f4f8; }
 
         .fc .fc-button-primary { 
             background-color: #fff !important; 
@@ -81,7 +76,6 @@
             padding: 6px 10px !important;
             font-size: 0.75rem !important;
         }
-        .fc .fc-button-primary:hover { background-color: #f9f9f9 !important; }
 
         .hint { font-size: 0.75rem; color: #aaa; text-align: center; margin-top: 12px; }
     </style>
@@ -89,7 +83,6 @@
 <body>
     <div class="container">
         <div class="auth-header"><button id="loginBtn" onclick="handleAuth()">☁️ ログイン</button></div>
-
         <h1 style="font-size:1.4rem; text-align:center; color:var(--primary-color); margin: 5px 0 20px;">学習スケジューラー</h1>
         
         <div class="status-panel">
@@ -110,7 +103,7 @@
 
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">年月をタップ：2週間 ↔ 月 ↔ 今日</p>
+        <p class="hint">年月をタップ：2週間 ↔ 月</p>
 
         <h2 style="border-left-color: #ccc; color: #888;">スケジュール一括削除</h2>
         <div id="allTasksManagementList"></div>
@@ -130,29 +123,20 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
         let currentUser = null;
-
         let calendar = null;
-        let vModes = ['dayGridTwoWeeks', 'dayGridMonth', 'listDay'];
-        let vIdx = 0;
+        let isMonthView = false; // 表示切り替え用フラグ
 
         // 認証管理
         auth.onAuthStateChanged(user => {
             currentUser = user;
             const btn = document.getElementById('loginBtn');
-            if (user) { 
-                btn.innerText = "✅ 同期中"; 
-                syncWithCloud(); 
-            } else { 
-                btn.innerText = "☁️ ログイン"; 
-            }
+            btn.innerText = user ? "✅ 同期中" : "☁️ ログイン";
+            if (user) syncWithCloud();
         });
 
         async function handleAuth() {
-            if (currentUser) { 
-                if(confirm("ログアウトしますか？")) await auth.signOut(); 
-            } else { 
-                await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); 
-            }
+            if (currentUser) { if(confirm("ログアウトしますか？")) await auth.signOut(); }
+            else { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
         }
 
         // --- データ管理 ---
@@ -165,7 +149,7 @@
             localStorage.setItem('myTodos', JSON.stringify(todos));
             localStorage.setItem('myStats', JSON.stringify(stats));
             
-            // クラウド同期
+            // クラウド同期ロジック
             if (currentUser) {
                 db.collection("users").doc(currentUser.uid).set({ tasks, todos, stats }, { merge: true });
             }
@@ -179,9 +163,9 @@
             const doc = await db.collection("users").doc(currentUser.uid).get();
             if (doc.exists) {
                 const d = doc.data();
-                if (d.tasks) localStorage.setItem('myTasks', JSON.stringify(d.tasks));
-                if (d.todos) localStorage.setItem('myTodos', JSON.stringify(d.todos));
-                if (d.stats) localStorage.setItem('myStats', JSON.stringify(d.stats));
+                localStorage.setItem('myTasks', JSON.stringify(d.tasks || []));
+                localStorage.setItem('myTodos', JSON.stringify(d.todos || []));
+                localStorage.setItem('myStats', JSON.stringify(d.stats || { total: 0, streak: 0, lastDate: "" }));
                 renderUI();
                 if(calendar) calendar.refetchEvents();
             }
@@ -218,23 +202,23 @@
         }
 
         function completeReview(id) {
-            const todayStr = new Date().toISOString().split('T')[0];
+            const today = new Date().toISOString().split('T')[0];
             let tasks = getTasks();
-            let task = tasks.find(x => x.id === id);
-            if (!task) return;
-            task.reviews = task.reviews.filter(d => d !== todayStr);
+            let t = tasks.find(x => x.id === id);
+            if (!t) return;
+            t.reviews = t.reviews.filter(d => d !== today);
             const stats = getStats();
             stats.total++;
-            if (stats.lastDate !== todayStr) {
+            if (stats.lastDate !== today) {
                 const yest = new Date(); yest.setDate(yest.getDate() - 1);
                 stats.streak = (stats.lastDate === yest.toISOString().split('T')[0]) ? stats.streak + 1 : 1;
-                stats.lastDate = todayStr;
+                stats.lastDate = today;
             }
             saveAll(tasks, getTodos(), stats);
         }
 
         function deleteFullTask(id) {
-            if(confirm("全スケジュールを削除しますさ？")) {
+            if(confirm("全スケジュールを削除しますか？")) {
                 const tasks = getTasks().filter(t => t.id !== id);
                 saveAll(tasks, getTodos(), getStats());
             }
@@ -275,11 +259,14 @@
         document.addEventListener('DOMContentLoaded', function() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridTwoWeeks', // 指摘：初期表示を2週間に変更
+                initialView: 'dayGridTwoWeeks', // 初期表示：2週間
                 locale: 'ja',
-                height: 'auto',
+                firstDay: 1, // 週の開始を月曜日に設定
                 headerToolbar: { left: 'prev', center: 'title', right: 'next today' },
-                views: { dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
+                views: { 
+                    dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } },
+                    dayGridMonth: { fixedWeekCount: false } // 必要な週だけ表示
+                },
                 events: function(info, success) {
                     const evs = getTasks().flatMap(t => t.reviews.map(d => ({ 
                         title: t.name, start: d, backgroundColor: '#4a90e2', borderColor: 'transparent', extendedProps: { taskId: t.id } 
@@ -297,8 +284,8 @@
                     if (titleEl && !titleEl.dataset.hasClick) {
                         titleEl.dataset.hasClick = "true";
                         titleEl.onclick = function() {
-                            vIdx = (vIdx + 1) % vModes.length;
-                            calendar.changeView(vModes[vIdx]);
+                            isMonthView = !isMonthView;
+                            calendar.changeView(isMonthView ? 'dayGridMonth' : 'dayGridTwoWeeks');
                         };
                     }
                 }
