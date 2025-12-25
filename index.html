@@ -14,7 +14,7 @@
             --bg-color: #f8fafb;
             --success-color: #2ecc71;
             --todo-color: #f39c12;
-            --danger-color: #ff4d4f; /* 削除ボタン赤 */
+            --danger-color: #ff4d4f; /* 削除ボタン：赤 */
             --text-color: #333;
         }
 
@@ -46,15 +46,16 @@
         .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         .btn-resched { background-color: #888; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         
-        /* カレンダータイトル整理 */
+        /* タイトルデザイン：青棒消去＆枠線ボタン化 */
         #calendar { margin-top: 10px; border-radius: 15px; border: 1px solid #eee; padding: 5px; background: #fff; }
         .fc-toolbar-title { 
             font-size: 1.1rem !important; font-weight: bold !important; cursor: pointer; 
             padding: 6px 16px; border-radius: 8px; border: 1px solid #eee; background: #fff;
             border-left: none !important; display: inline-block;
         }
+        .fc .fc-button-primary { background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; font-size: 0.75rem !important; }
 
-        /* 編集モーダル */
+        /* 同時編集モーダル */
         .modal-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 9999;
@@ -64,7 +65,7 @@
             box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
         }
         .modal-content label { display: block; margin-top: 15px; font-size: 0.85rem; color: #666; }
-        .modal-content input { width: 100%; box-sizing: border-box; margin-top: 5px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        .modal-content input { width: 100%; box-sizing: border-box; margin-top: 5px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; }
         .modal-footer { display: flex; gap: 10px; margin-top: 25px; }
         .modal-footer button { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; }
         .btn-cancel { background: #eee; color: #666; }
@@ -96,7 +97,7 @@
 
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">タイトルタップ：2週 ↔ 4週 (常に今週起点)<br>予定をタップ：タスク名と日程を同時編集</p>
+        <p class="hint">タイトルタップ：2週 ↔ 4週 (常に今週起点)<br>予定タップ：内容と回次以降の日程を同時編集</p>
 
         <h2 style="border-left-color: #ccc; color: #888;">一括削除</h2>
         <div id="allTasksManagementList"></div>
@@ -171,14 +172,15 @@
             }
         }
 
-        // --- 同時編集 & パターンB-1連動 ---
+        // --- パターンB-1：同時保存 & 連動スライド ---
         function updateAndReschedule(taskId, targetDateStr, oldDateStr, reviewIdx, newName) {
             let tasks = getTasks();
             let task = tasks.find(t => t.id === taskId);
             if (!task) return;
-            task.name = newName;
 
-            if (targetDateStr !== oldDateStr) {
+            task.name = newName; // 名前の同時更新
+
+            if (targetDateStr !== oldDateStr) { // 日付変更がある場合のみスライド
                 const diffTime = new Date(targetDateStr) - new Date(oldDateStr);
                 const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
                 task.reviews = task.reviews.map((dateStr, idx) => {
@@ -209,6 +211,19 @@
                 closeModal();
             }
         };
+
+        // --- カレンダータイトル「月 - 月」強制置換 ---
+        function forceCompactTitle() {
+            const titleEl = document.querySelector('.fc-toolbar-title');
+            if (!titleEl) return;
+            const text = titleEl.innerText;
+            const months = text.match(/(\d+)月/g);
+            if (months && months.length >= 2) {
+                titleEl.innerText = `${months[0]} - ${months[months.length-1]}`;
+            } else if (months && months.length === 1) {
+                titleEl.innerText = months[0];
+            }
+        }
 
         function addTodo() {
             const input = document.getElementById('todoInput');
@@ -262,7 +277,7 @@
                     return `
                     <div class="task-item review-item"><span>${t.name}</span>
                     <div class="button-group">
-                        <button class="btn-resched" onclick="updateAndReschedule(${t.id}, '${new Date(Date.now() + 86400000).toISOString().split('T')[0]}', '${today}', ${idx}, '${t.name}')">別日</button>
+                        <button class="btn-resched" onclick="updateAndReschedule(${t.id}, '${new Date(Date.now() + 86400000).toISOString().split('T')[0]}', '${today}', ${idx}, '${t.name.replace(/'/g, "\\'")}')">別日</button>
                         <button class="btn-done" onclick="completeReview(${t.id}, '${today}')">完了</button>
                     </div></div>`;
                 })
@@ -273,19 +288,6 @@
 
             document.getElementById('streakCount').innerText = stats.streak;
             document.getElementById('totalDone').innerText = stats.total;
-        }
-
-        // --- 月-月 形式への書き換え関数 ---
-        function updateTitleFormat() {
-            const titleEl = document.querySelector('.fc-toolbar-title');
-            if (!titleEl) return;
-            const text = titleEl.innerText;
-            const months = text.match(/(\d+)月/g);
-            if (months && months.length >= 2) {
-                titleEl.innerText = `${months[0]} - ${months[months.length-1]}`;
-            } else if (months && months.length === 1) {
-                titleEl.innerText = months[0];
-            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -316,20 +318,25 @@
                     openEditModal(task.id, task.name, info.event.startStr, info.event.extendedProps.reviewIdx);
                 },
                 datesSet: () => {
-                    updateTitleFormat(); // タイトルを 月-月 に修正
+                    forceCompactTitle(); // 表示の度に「月 - 月」に置換
                     const titleEl = document.querySelector('.fc-toolbar-title');
                     if (titleEl && !titleEl.dataset.hasClick) {
                         titleEl.dataset.hasClick = "true";
                         titleEl.onclick = () => {
                             isMonthView = !isMonthView;
                             calendar.changeView(isMonthView ? 'dayGridFourWeeks' : 'dayGridTwoWeeks');
-                            calendar.gotoDate(new Date()); // 今日を1行目に固定
+                            calendar.gotoDate(new Date()); // 今日（今週）を1行目に固定
                         };
                     }
                 }
             });
             calendar.render();
             renderUI();
+            
+            // 標準動作によるタイトル上書きを防止
+            const observer = new MutationObserver(forceCompactTitle);
+            const titleContainer = document.querySelector('.fc-toolbar-title');
+            if (titleContainer) observer.observe(titleContainer, { childList: true, characterData: true, subtree: true });
         });
     </script>
 </body>
