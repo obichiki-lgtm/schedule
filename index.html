@@ -13,6 +13,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; }
         
+        /* カレンダーヘッダー設定 */
         .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; position: relative !important; margin-bottom: 20px !important; }
         .fc-toolbar-chunk:nth-child(2) { position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; z-index: 100; }
         .fc-toolbar-title { font-size: 0.9rem !important; font-weight: bold !important; padding: 6px 12px !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; cursor: pointer !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -44,6 +45,7 @@
     <div class="container">
         <div class="auth-header"><button id="loginBtn" onclick="handleAuth()">☁️ ログイン</button></div>
         <h1>学習スケジューラー</h1>
+        
         <div class="status-panel">
             <div class="status-item"><span class="status-value" id="streakCount">0</span><span class="status-label">🔥 継続日数</span></div>
             <div class="status-item"><span class="status-value" id="totalDone">0</span><span class="status-label">🏆 累計完了</span></div>
@@ -55,14 +57,16 @@
             <button class="add-btn" onclick="addTodo()">登録</button>
         </div>
         <div id="todoList"></div>
+
         <h2>今日の復習</h2>
         <div id="todayReviewList"></div>
+
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">タイトルをタップして切替：<br>2週間 → 1週間 → 月</p>
+        <p class="hint">タイトルをタップ：2週間 → 1週間 → 月</p>
 
         <div style="margin-top: 40px; opacity: 0.6;">
-            <h2>全タスクの削除</h2>
+            <h2>全タスクの管理・削除</h2>
             <div id="allTasksList"></div>
         </div>
     </div>
@@ -84,7 +88,7 @@
         let calendar;
         let viewIndex = 0;
         
-        // エラーを防ぐためリスト形式を除外した3段階ループ
+        // エラー防止のためグリッド形式のみに限定
         const viewModes = ['dayGridTwoWeeks', 'dayGridWeek', 'dayGridMonth'];
 
         auth.onAuthStateChanged(user => {
@@ -107,7 +111,7 @@
                 initialView: 'dayGridTwoWeeks',
                 locale: 'ja',
                 height: 'auto',
-                // タイトルの年重複を解消
+                // タイトルの年重複を修正
                 titleFormat: function(info) {
                     const start = info.start.marker;
                     const end = new Date(info.end.marker);
@@ -122,7 +126,7 @@
                     const endStr = (sY === eY) ? `${eM}月${eD}日` : `${eY}年${eM}月${eD}日`;
                     return `${sY}年${sM}月${sD}日 – ${endStr}`;
                 },
-                // 曜日を消して日付(M/D)のみ
+                // ヘッダーから曜日を消し日付(M/D)のみ表示
                 dayHeaderContent: function(arg) {
                     return (arg.date.getMonth() + 1) + '/' + arg.date.getDate();
                 },
@@ -145,7 +149,7 @@
             calendar.render();
         }
 
-        // 基本ロジック（そのまま維持）
+        // --- ロジック部分 ---
         function getTasks() { return JSON.parse(localStorage.getItem('myTasks')) || []; }
         function getTodos() { return JSON.parse(localStorage.getItem('myTodos')) || []; }
         function getStats() { return JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 }; }
