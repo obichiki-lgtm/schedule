@@ -14,14 +14,13 @@
             --bg-color: #f8fafb;
             --success-color: #2ecc71;
             --todo-color: #f39c12;
-            --danger-color: #ff4d4f; /* 削除ボタン：赤 */
+            --danger-color: #ff4d4f; /* 削除ボタン赤 */
             --text-color: #333;
         }
 
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* 認証ヘッダー */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #f0f0f0; border: none; padding: 6px 14px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
 
@@ -30,7 +29,6 @@
         .status-value { display: block; font-size: 1.8rem; font-weight: bold; color: var(--primary-color); text-align: center; }
         .status-label { font-size: 0.75rem; color: #888; text-align: center; }
 
-        /* 入力エリア */
         .input-area { display: flex; gap: 10px; margin-bottom: 20px; }
         input[type="text"], input[type="date"] { flex: 1; padding: 12px; border: 1px solid #e0e0e0; border-radius: 12px; font-size: 16px; outline: none; }
         .add-btn { background-color: var(--todo-color); color: white; border: none; padding: 0 20px; border-radius: 12px; font-weight: bold; cursor: pointer; }
@@ -38,7 +36,6 @@
         h2 { font-size: 1.1rem; border-left: 5px solid var(--primary-color); padding-left: 12px; margin: 30px 0 15px; color: #444; }
         .todo-header { border-left-color: var(--todo-color); }
 
-        /* リストアイテム */
         .task-item { background: #fff; border: 1px solid #f0f0f0; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 15px; font-size: 0.95rem; }
         .todo-item { border-left: 6px solid var(--todo-color); }
         .review-item { border-left: 6px solid var(--primary-color); }
@@ -49,16 +46,14 @@
         .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         .btn-resched { background-color: #888; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         
-        /* カレンダーデザイン */
         #calendar { margin-top: 10px; border-radius: 15px; border: 1px solid #eee; padding: 5px; background: #fff; }
         .fc-toolbar-title { 
             font-size: 1.1rem !important; font-weight: bold !important; cursor: pointer; 
             padding: 6px 16px; border-radius: 8px; border: 1px solid #eee; background: #fff;
-            border-left: none !important; display: inline-block;
+            border-left: none !important; display: inline-block; /* 青棒消去 */
         }
-        .fc .fc-button-primary { background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; font-size: 0.75rem !important; }
 
-        /* カスタム編集モーダル */
+        /* 編集モーダル */
         .modal-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 9999;
@@ -68,7 +63,7 @@
             box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
         }
         .modal-content label { display: block; margin-top: 15px; font-size: 0.85rem; color: #666; }
-        .modal-content input { width: 100%; box-sizing: border-box; margin-top: 5px; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        .modal-content input { width: 100%; box-sizing: border-box; margin-top: 5px; }
         .modal-footer { display: flex; gap: 10px; margin-top: 25px; }
         .modal-footer button { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; }
         .btn-cancel { background: #eee; color: #666; }
@@ -100,7 +95,7 @@
 
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">年月タップ：2週 ↔ 4週 (常に今週起点)<br>日付をタップ：新規記録<br>予定をタップ：タスク名と日程を同時編集</p>
+        <p class="hint">年月タップ：2週 ↔ 4週 (常に今週起点)<br>予定をタップ：内容と回次以降の日程を同時編集</p>
 
         <h2 style="border-left-color: #ccc; color: #888;">一括削除</h2>
         <div id="allTasksManagementList"></div>
@@ -175,25 +170,29 @@
             }
         }
 
-        // --- パターンB-1：絶対移動ロジック ---
-        function rescheduleTaskByIndex(taskId, targetDateStr, oldDateStr, reviewIdx, newName) {
+        // --- パターンB-1：絶対移動ロジック (1つの関数で名前と連動移動を処理) ---
+        function updateAndReschedule(taskId, targetDateStr, oldDateStr, reviewIdx, newName) {
             let tasks = getTasks();
             let task = tasks.find(t => t.id === taskId);
             if (!task) return;
 
-            if (newName) task.name = newName;
+            // 名前を更新
+            task.name = newName;
 
-            const diffTime = new Date(targetDateStr) - new Date(oldDateStr);
-            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            // 日付が変更されている場合のみスライド処理
+            if (targetDateStr !== oldDateStr) {
+                const diffTime = new Date(targetDateStr) - new Date(oldDateStr);
+                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-            task.reviews = task.reviews.map((dateStr, idx) => {
-                if (idx >= reviewIdx) {
-                    const d = new Date(dateStr);
-                    d.setDate(d.getDate() + diffDays);
-                    return d.toISOString().split('T')[0];
-                }
-                return dateStr;
-            });
+                task.reviews = task.reviews.map((dateStr, idx) => {
+                    if (idx >= reviewIdx) {
+                        const d = new Date(dateStr);
+                        d.setDate(d.getDate() + diffDays);
+                        return d.toISOString().split('T')[0];
+                    }
+                    return dateStr;
+                });
+            }
             saveAll(tasks, getTodos(), getStats());
         }
 
@@ -207,11 +206,18 @@
 
         function closeModal() { document.getElementById('editModal').style.display = 'none'; }
 
+        // 保存ボタンクリック時の統合アクション
         document.getElementById('saveModalBtn').onclick = () => {
             const newName = document.getElementById('editTaskName').value;
             const newDate = document.getElementById('editTaskDate').value;
             if (newName && newDate) {
-                rescheduleTaskByIndex(currentEditingData.taskId, newDate, currentEditingData.oldDate, currentEditingData.reviewIdx, newName);
+                updateAndReschedule(
+                    currentEditingData.taskId, 
+                    newDate, 
+                    currentEditingData.oldDate, 
+                    currentEditingData.reviewIdx, 
+                    newName
+                );
                 closeModal();
             }
         };
@@ -256,7 +262,6 @@
             const today = new Date().toISOString().split('T')[0];
             const tasks = getTasks();
             const stats = getStats();
-
             document.getElementById('todoList').innerHTML = getTodos().map(t => `
                 <div class="task-item todo-item"><span>${t.name}</span>
                 <div class="button-group">
@@ -270,7 +275,7 @@
                     return `
                     <div class="task-item review-item"><span>${t.name}</span>
                     <div class="button-group">
-                        <button class="btn-resched" onclick="rescheduleTaskByIndex(${t.id}, '${new Date(Date.now() + 86400000).toISOString().split('T')[0]}', '${today}', ${idx})">別日</button>
+                        <button class="btn-resched" onclick="updateAndReschedule(${t.id}, '${new Date(Date.now() + 86400000).toISOString().split('T')[0]}', '${today}', ${idx}, '${t.name.replace(/'/g, "\\'")}')">別日</button>
                         <button class="btn-done" onclick="completeReview(${t.id}, '${today}')">完了</button>
                     </div></div>`;
                 })
