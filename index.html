@@ -13,13 +13,13 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* カレンダーヘッダー調整 */
-        .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; position: relative !important; margin-bottom: 20px !important; }
+        /* カレンダーヘッダー */
+        .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; position: relative !important; margin-bottom: 15px !important; }
         .fc-toolbar-chunk:nth-child(2) { position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; z-index: 10; }
         .fc-toolbar-title { font-size: 0.85rem !important; font-weight: bold !important; padding: 6px 12px !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; cursor: pointer !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .fc .fc-button { padding: 2px 6px !important; font-size: 0.65rem !important; background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; }
 
-        /* グリッド表示の高さ調整（画像のような過度な空白防止） */
+        /* カレンダー内部の高さ調整 */
         .fc-daygrid-day-frame { min-height: 50px !important; }
         .fc-list-event-title { cursor: pointer; font-size: 0.85rem; }
 
@@ -69,7 +69,7 @@
 
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">タイトルをタップ：表示切替<br>(2週間 → 1週間 → 今日リスト → 月)</p>
+        <p class="hint">タイトル（年月）をタップで切替：<br>2週間(カレンダー) → 1週間(カレンダー) → 今日(リスト) → 月(カレンダー)</p>
 
         <div style="margin-top: 40px; opacity: 0.6;">
             <h2>全タスク管理・削除</h2>
@@ -94,7 +94,7 @@
         let calendar;
         let viewIndex = 0;
         
-        // 【修正ポイント】指定された順序と形式に固定
+        // 【完全修正】指定された通りの順序と形式
         const viewModes = ['dayGridTwoWeeks', 'dayGridWeek', 'listDay', 'dayGridMonth'];
 
         auth.onAuthStateChanged(user => {
@@ -114,11 +114,15 @@
         function initCalendar() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridTwoWeeks', // 最初は2週間カレンダーを表示
+                initialView: 'dayGridTwoWeeks', // 初期表示は2週間カレンダー
                 locale: 'ja',
                 height: 'auto',
                 views: {
-                    dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } }
+                    dayGridTwoWeeks: { 
+                        type: 'dayGrid', 
+                        duration: { weeks: 2 }, 
+                        buttonText: '2週間' 
+                    }
                 },
                 headerToolbar: { left: '', center: 'title', right: 'prev,next,today' },
                 events: getCalendarEvents(),
@@ -126,6 +130,7 @@
                 datesSet: function() {
                     const titleEl = document.querySelector('.fc-toolbar-title');
                     if (titleEl) {
+                        // タイトルタップで指定順に切り替え
                         titleEl.onclick = () => {
                             viewIndex = (viewIndex + 1) % viewModes.length;
                             calendar.changeView(viewModes[viewIndex]);
@@ -136,7 +141,7 @@
             calendar.render();
         }
 
-        // --- データ管理機能 (Firebase/LocalStorage) ---
+        // --- データ同期・管理 ---
         function getTasks() { return JSON.parse(localStorage.getItem('myTasks')) || []; }
         function getTodos() { return JSON.parse(localStorage.getItem('myTodos')) || []; }
         function getStats() { return JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 }; }
@@ -163,7 +168,7 @@
             }
         }
 
-        // --- ロジック機能 ---
+        // --- アプリロジック ---
         function addTodo() {
             const input = document.getElementById('todoInput');
             if (!input.value) return;
