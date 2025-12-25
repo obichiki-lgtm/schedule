@@ -46,10 +46,10 @@
         .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         .btn-resched { background-color: #888; color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         
-        /* タイトルデザイン：青棒消去 & 崩れ防止 */
+        /* タイトルデザイン：青棒消去＆崩れ防止 */
         #calendar { margin-top: 10px; border-radius: 15px; border: 1px solid #eee; padding: 5px; background: #fff; }
         .fc-toolbar-title { 
-            font-size: 1.05rem !important; font-weight: bold !important; cursor: pointer; 
+            font-size: 0.95rem !important; font-weight: bold !important; cursor: pointer; 
             padding: 6px 12px; border-radius: 8px; border: 1px solid #eee; background: #fff;
             border-left: none !important; display: inline-block; white-space: nowrap;
         }
@@ -108,7 +108,7 @@
             <h3 style="margin: 0 0 15px; font-size: 1.1rem;">学習内容の編集</h3>
             <label>タスク名を編集:</label>
             <input type="text" id="editTaskName">
-            <label>この回以降の日程を変更 (YYYY-MM-DD):</label>
+            <label>この回以降の日程を変更:</label>
             <input type="date" id="editTaskDate">
             <div class="modal-footer">
                 <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
@@ -130,10 +130,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        let currentUser = null;
-        let calendar = null;
-        let isMonthView = false;
-        let currentEditingData = null;
+        let currentUser = null, calendar = null, isMonthView = false, currentEditingData = null;
 
         auth.onAuthStateChanged(user => {
             currentUser = user;
@@ -172,15 +169,13 @@
             }
         }
 
-        // --- パターンB-1：同時保存 & 連動スライド ---
+        // --- パターンB-1連動スライド & 同時保存 ---
         function updateAndReschedule(taskId, targetDateStr, oldDateStr, reviewIdx, newName) {
             let tasks = getTasks();
             let task = tasks.find(t => t.id === taskId);
             if (!task) return;
-
-            task.name = newName; // 名前を即時更新
-
-            if (targetDateStr !== oldDateStr) { // 日付が変更された場合のみスライド
+            task.name = newName;
+            if (targetDateStr !== oldDateStr) {
                 const diffTime = new Date(targetDateStr) - new Date(oldDateStr);
                 const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
                 task.reviews = task.reviews.map((dateStr, idx) => {
@@ -212,18 +207,15 @@
             }
         };
 
-        // --- カレンダータイトル「月 - 月」強制置換 ---
-        function forceCompactTitle() {
+        // --- カレンダータイトル整形 (月日 - 月日) ---
+        function formatCalendarTitle() {
             const titleEl = document.querySelector('.fc-toolbar-title');
             if (!titleEl) return;
             const text = titleEl.innerText;
-            const months = text.match(/(\d+)月/g);
-            if (months) {
-                if (months.length >= 2) {
-                    titleEl.innerText = `${months[0]} - ${months[months.length-1]}`;
-                } else if (months.length === 1) {
-                    titleEl.innerText = `${months[0]} - ${months[0]}`; // 「2」のご要望通り同一月内でも重ねる
-                }
+            // 「2025年12月22日 – 2026年1月4日」のような文字列から日付部分だけ抽出
+            const dates = text.match(/(\d+月\d+日)/g);
+            if (dates && dates.length >= 2) {
+                titleEl.innerText = `${dates[0]} - ${dates[dates.length - 1]}`;
             }
         }
 
@@ -320,7 +312,7 @@
                     openEditModal(task.id, task.name, info.event.startStr, info.event.extendedProps.reviewIdx);
                 },
                 datesSet: () => {
-                    forceCompactTitle(); 
+                    formatCalendarTitle(); // 安全にタイトルを整形
                     const titleEl = document.querySelector('.fc-toolbar-title');
                     if (titleEl && !titleEl.dataset.hasClick) {
                         titleEl.dataset.hasClick = "true";
@@ -334,11 +326,6 @@
             });
             calendar.render();
             renderUI();
-            
-            // 標準動作によるタイトル上書きを常時監視して阻止
-            const observer = new MutationObserver(forceCompactTitle);
-            const titleContainer = document.querySelector('.fc-toolbar-title');
-            if (titleContainer) observer.observe(titleContainer, { childList: true, characterData: true, subtree: true });
         });
     </script>
 </body>
