@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>学習スケジューラー</title>
+    <title>学習スケジューラー Pro</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -13,20 +13,20 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* カレンダーヘッダー設定 */
+        /* カレンダーツールバーの最適化 */
         .fc .fc-toolbar { display: flex !important; justify-content: space-between !important; align-items: center !important; position: relative !important; margin-bottom: 20px !important; }
         .fc-toolbar-chunk:nth-child(2) { position: absolute !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; z-index: 100; }
         .fc-toolbar-title { font-size: 0.85rem !important; font-weight: bold !important; padding: 6px 12px !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; cursor: pointer !important; box-shadow: 0 2px 4px rgba(0,0,0,0.05); white-space: nowrap; }
         .fc .fc-button { padding: 4px 8px !important; font-size: 0.7rem !important; background-color: #fff !important; color: #444 !important; border: 1px solid #ddd !important; }
 
-        /* セル・リストの高さ調整 */
+        /* カレンダー本体の調整 */
+        #calendar { min-height: 250px !important; background: #fff; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .fc-daygrid-day-frame { min-height: 55px !important; }
-        .fc-list-event-title { font-size: 0.85rem !important; cursor: pointer; }
-        
-        /* UIパーツ */
+        .fc-list-event-title { font-size: 0.85rem !important; }
+
+        /* UIコンポーネント */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 5px 12px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
-        #loginBtn.logged-in { background: #e3f2fd; color: var(--primary-color); }
         h1 { font-size: 1.2rem; text-align: center; color: var(--primary-color); margin: 5px 0 15px; }
         h2 { font-size: 0.95rem; border-left: 4px solid var(--primary-color); padding-left: 8px; margin-top: 20px; margin-bottom: 10px; }
         
@@ -42,8 +42,6 @@
         .todo-item { border-left-color: var(--todo-color); }
         .review-item { border-left-color: var(--primary-color); }
         .btn-done { background-color: var(--success-color); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
-        
-        #calendar { margin-top: 10px; background: white; border-top: 1px solid #eee; padding-top: 10px; min-height: 300px; }
         .hint { font-size: 0.7rem; color: #999; text-align: center; margin-top: 12px; line-height: 1.5; }
     </style>
 </head>
@@ -51,6 +49,7 @@
     <div class="container">
         <div class="auth-header"><button id="loginBtn" onclick="handleAuth()">☁️ ログイン</button></div>
         <h1>学習スケジューラー</h1>
+        
         <div class="status-panel">
             <div class="status-item"><span class="status-value" id="streakCount">0</span><span class="status-label">🔥 継続日数</span></div>
             <div class="status-item"><span class="status-value" id="totalDone">0</span><span class="status-label">🏆 累計完了</span></div>
@@ -68,7 +67,7 @@
 
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">タイトル（年月）をタップして切替：<br>2週間 → 1週間 → 今日(リスト) → 月</p>
+        <p class="hint">タイトルをタップ：2週間→1週間→今日→月</p>
 
         <div style="margin-top: 40px; opacity: 0.6;">
             <h2>全タスクの管理・削除</h2>
@@ -83,8 +82,7 @@
             projectId: "my-study-app-6a0b6",
             storageBucket: "my-study-app-6a0b6.firebasestorage.app",
             messagingSenderId: "441129563668",
-            appId: "1:441129563668:web:48cc07f882bff1785e5901",
-            measurementId: "G-WTPBE7LPN1"
+            appId: "1:441129563668:web:48cc07f882bff1785e5901"
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
@@ -97,8 +95,8 @@
         auth.onAuthStateChanged(user => {
             currentUser = user;
             const btn = document.getElementById('loginBtn');
-            if (user) { btn.innerText = "✅ 同期中"; btn.classList.add('logged-in'); syncWithCloud(); }
-            else { btn.innerText = "☁️ ログイン"; btn.classList.remove('logged-in'); }
+            if (user) { btn.innerText = "✅ 同期中"; syncWithCloud(); }
+            else { btn.innerText = "☁️ ログイン"; }
         });
 
         async function handleAuth() {
@@ -114,28 +112,24 @@
                 initialView: 'dayGridTwoWeeks',
                 locale: 'ja',
                 height: 'auto',
-                noEventsContent: '今日の復習予定はありません', // リスト表示が空の時のメッセージ
+                noEventsContent: '今日の復習予定はありません',
                 titleFormat: function(info) {
                     const start = info.start.marker;
                     if (calendar.view.type === 'dayGridMonth') return `${start.getFullYear()}年 ${start.getMonth() + 1}月`;
-                    if (calendar.view.type === 'listDay') return `${start.getFullYear()}年${start.getMonth() + 1}月${start.getDate()}日`;
+                    if (calendar.view.type === 'listDay') return `${start.getMonth() + 1}/${start.getDate()}の予定`;
                     const end = new Date(info.end.marker);
                     end.setDate(end.getDate() - 1);
-                    return `${start.getMonth() + 1}/${start.getDate()} – ${end.getMonth() + 1}/${end.getDate()}`;
+                    return `${start.getMonth() + 1}/${start.getDate()} - ${end.getMonth() + 1}/${end.getDate()}`;
                 },
                 dayHeaderContent: function(arg) {
                     return (arg.date.getMonth() + 1) + '/' + arg.date.getDate();
                 },
-                views: {
-                    dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } }
-                },
+                views: { dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
                 headerToolbar: { left: 'prev', center: 'title', right: 'next' },
                 events: getCalendarEvents(),
-                eventClick: function(info) { editTaskName(info.event.extendedProps.taskId); },
                 datesSet: function() {
                     const titleEl = document.querySelector('.fc-toolbar-title');
                     if (titleEl) {
-                        titleEl.onclick = null;
                         titleEl.onclick = function() {
                             viewIndex = (viewIndex + 1) % viewModes.length;
                             calendar.changeView(viewModes[viewIndex]);
@@ -146,7 +140,7 @@
             calendar.render();
         }
 
-        // --- データ管理 ---
+        // --- ロジック ---
         function getTasks() { return JSON.parse(localStorage.getItem('myTasks')) || []; }
         function getTodos() { return JSON.parse(localStorage.getItem('myTodos')) || []; }
         function getStats() { return JSON.parse(localStorage.getItem('myStats')) || { total: 0, lastDate: "", streak: 0 }; }
@@ -173,7 +167,6 @@
             }
         }
 
-        // --- アプリ機能 ---
         function addTodo() {
             const input = document.getElementById('todoInput');
             if (!input.value) return;
@@ -216,15 +209,6 @@
         function deleteItem(id, type) {
             if (type === 'todo') saveAllData(getTasks(), getStats(), getTodos().filter(t => t.id !== id));
             else { if(confirm("削除しますか？")) saveAllData(getTasks().filter(t => t.id !== id), getStats(), getTodos()); }
-        }
-
-        function editTaskName(id) {
-            let tasks = getTasks();
-            const idx = tasks.findIndex(t => t.id === id);
-            if (idx !== -1) {
-                const name = prompt("名前変更", tasks[idx].name);
-                if (name) { tasks[idx].name = name; saveAllData(tasks, getStats(), getTodos()); }
-            }
         }
 
         function displayAll() {
