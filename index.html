@@ -4,47 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>学習スケジューラー</title>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <style>
-        :root { --primary-color: #4a90e2; --bg-color: #f4f7f6; --success-color: #2ecc71; --todo-color: #f39c12; --danger-color: #bdc3c7; --text-color: #333; }
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f4f7f6;
+            --success-color: #2ecc71;
+            --todo-color: #f39c12;
+            --danger-color: #bdc3c7;
+            --text-color: #333;
+        }
+
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); width: 100%; max-width: 500px; box-sizing: border-box; }
         
-        /* セクション見出し */
-        h2 { font-size: 1rem; border-left: 5px solid var(--primary-color); padding-left: 10px; margin-top: 25px; margin-bottom: 12px; }
-        .todo-header { border-left-color: var(--todo-color); }
-
-        /* 入力エリア */
+        /* 統計パネル */
         .status-panel { display: flex; justify-content: space-around; background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 15px; margin-bottom: 20px; }
         .status-value { display: block; font-size: 1.5rem; font-weight: bold; color: var(--primary-color); text-align: center; }
         .status-label { font-size: 0.7rem; color: #888; }
+
+        /* 入力エリア */
         .input-area { display: flex; gap: 8px; margin-bottom: 20px; }
         input[type="text"] { flex: 1; padding: 12px; border: 1px solid #eee; border-radius: 10px; font-size: 16px; outline: none; }
         .add-btn { background-color: var(--todo-color); color: white; border: none; padding: 0 15px; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
-        /* リストアイテム共通デザイン */
+        /* セクション見出し */
+        h2 { font-size: 1rem; border-left: 5px solid var(--primary-color); padding-left: 10px; margin-top: 25px; margin-bottom: 12px; }
+        .todo-header { border-left-color: var(--todo-color); }
+
+        /* リストアイテム */
         .task-item { background: #fff; border: 1px solid #eee; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-radius: 12px; font-size: 0.9rem; }
         .button-group { display: flex; gap: 8px; }
 
         /* ボタンデザイン */
-        .btn-done { background-color: var(--success-color); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
-        .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        .btn-done { background-color: var(--success-color); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+        .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
         
         /* カレンダー */
-        #calendar { margin-top: 10px; }
-        .fc-toolbar-title { font-size: 1.1rem !important; font-weight: bold !important; cursor: pointer; }
+        #calendar { margin-top: 10px; min-height: 300px; }
+        .fc-toolbar-title { font-size: 1.1rem !important; font-weight: bold !important; }
         .hint { font-size: 0.7rem; color: #999; text-align: center; margin-top: 10px; }
-
-        .auth-header { text-align: right; margin-bottom: 5px; }
-        #loginBtn { background: none; border: none; font-size: 11px; color: #bbb; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="auth-header"><button id="loginBtn" onclick="handleAuth()">☁️ ログイン</button></div>
         <h1 style="font-size:1.2rem; text-align:center; color:var(--primary-color); margin: 0 0 15px 0;">学習スケジューラー</h1>
         
         <div class="status-panel">
@@ -57,7 +60,7 @@
             <button class="add-btn" onclick="addTodo()">登録</button>
         </div>
 
-        <h2 class="todo-header">ToDo</h2>
+        <h2 class="todo-header">ToDoリスト</h2>
         <div id="todoList"></div>
 
         <h2>今日の復習</h2>
@@ -65,58 +68,33 @@
 
         <h2>カレンダー</h2>
         <div id="calendar"></div>
-        <p class="hint">タイトルタップで表示切替 / 予定タップで名前編集</p>
+        <p class="hint">予定タップで名前編集 / 月・週の切替が可能</p>
 
         <h2 style="border-left-color: #ccc; color: #888;">スケジュール一括削除</h2>
         <div id="allTasksManagementList"></div>
     </div>
 
     <script>
-        // --- 設定 ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
-            authDomain: "my-study-app-6a0b6.firebaseapp.com",
-            projectId: "my-study-app-6a0b6",
-            storageBucket: "my-study-app-6a0b6.firebasestorage.app",
-            messagingSenderId: "441129563668",
-            appId: "1:441129563668:web:48cc07f882bff1785e5901"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-
         let calendar = null;
-        let isTwoWeekMode = true;
 
+        // データ取得用関数
         const getTasks = () => JSON.parse(localStorage.getItem('myTasks')) || [];
         const getTodos = () => JSON.parse(localStorage.getItem('myTodos')) || [];
         const getStats = () => JSON.parse(localStorage.getItem('myStats')) || { total: 0, streak: 0, lastDate: "" };
 
+        // データを保存してUIを更新
         function save(tasks, todos, stats) {
             localStorage.setItem('myTasks', JSON.stringify(tasks));
             localStorage.setItem('myTodos', JSON.stringify(todos));
             localStorage.setItem('myStats', JSON.stringify(stats));
-            if (auth.currentUser) db.collection("users").doc(auth.currentUser.uid).set({ tasks, todos, stats });
             renderUI();
-            if (calendar) calendar.refetchEvents();
-        }
-
-        // --- 1. ToDoの削除（確認バナー付き） ---
-        function deleteTodo(id) {
-            if(confirm("このToDoを削除しますか？\n(カレンダーには登録されません)")) {
-                const todos = getTodos().filter(t => t.id !== id);
-                save(getTasks(), todos, getStats());
+            if (calendar) {
+                calendar.removeAllEvents();
+                calendar.addEventSource(generateCalendarEvents(tasks));
             }
         }
 
-        // --- 2. スケジュールの一括削除 ---
-        function deleteFullTask(id) {
-            if(confirm("この項目の全スケジュール（1〜5回目すべて）を削除しますか？")) {
-                const tasks = getTasks().filter(t => t.id !== id);
-                save(tasks, getTodos(), getStats());
-            }
-        }
-
+        // ToDoの新規追加
         function addTodo() {
             const input = document.getElementById('todoInput');
             if (!input.value.trim()) return;
@@ -126,6 +104,15 @@
             input.value = "";
         }
 
+        // --- ToDo単体の削除（確認ダイアログ付き） ---
+        function deleteTodo(id) {
+            if(confirm("このToDoを削除しますか？\n（カレンダーには登録されません）")) {
+                const todos = getTodos().filter(t => t.id !== id);
+                save(getTasks(), todos, getStats());
+            }
+        }
+
+        // ToDoの完了 -> 復習スケジュール生成
         function completeTodo(id) {
             const todos = getTodos();
             const item = todos.find(t => t.id === id);
@@ -139,41 +126,61 @@
             save(tasks, todos.filter(t => t.id !== id), getStats());
         }
 
+        // 今日の復習を完了
         function completeReview(id) {
             const todayStr = new Date().toISOString().split('T')[0];
-            const today = new Date(todayStr);
             let tasks = getTasks();
             let task = tasks.find(x => x.id === id);
-            const plannedDateStr = task.reviews.find(d => d <= todayStr) || todayStr;
-            const plannedDate = new Date(plannedDateStr);
-            const diffDays = Math.floor((today - plannedDate) / (1000 * 60 * 60 * 24));
+            if (!task) return;
+
+            task.reviews = task.reviews.filter(d => d !== todayStr);
             
-            task.reviews = task.reviews.filter(d => d !== plannedDateStr);
-            if (diffDays > 0) {
-                task.reviews = task.reviews.map(dStr => {
-                    let d = new Date(dStr);
-                    d.setDate(d.getDate() + diffDays);
-                    return d.toISOString().split('T')[0];
-                });
-                alert(`${diffDays} 日の遅れを調整しました ✨`);
-            }
             const stats = getStats();
             stats.total++;
             if (stats.lastDate !== todayStr) {
                 const yest = new Date(); yest.setDate(yest.getDate() - 1);
-                stats.streak = (stats.lastDate === yest.toISOString().split('T')[0]) ? stats.streak + 1 : 1;
+                const yestStr = yest.toISOString().split('T')[0];
+                stats.streak = (stats.lastDate === yestStr) ? stats.streak + 1 : 1;
                 stats.lastDate = todayStr;
             }
             save(tasks, getTodos(), stats);
         }
 
+        // スケジュールの全削除（一括管理用）
+        function deleteFullTask(id) {
+            if(confirm("この項目の全スケジュールを削除しますか？")) {
+                const tasks = getTasks().filter(t => t.id !== id);
+                save(tasks, getTodos(), getStats());
+            }
+        }
+
+        // カレンダー用のイベント生成
+        function generateCalendarEvents(tasks) {
+            let events = [];
+            tasks.forEach(t => {
+                const totalRounds = 5;
+                t.reviews.forEach(d => {
+                    const futureCount = t.reviews.filter(rd => rd > d).length;
+                    events.push({
+                        title: `${t.name} (${totalRounds - futureCount}回目)`,
+                        start: d,
+                        backgroundColor: '#4a90e2',
+                        borderColor: '#4a90e2',
+                        extendedProps: { taskId: t.id }
+                    });
+                });
+            });
+            return events;
+        }
+
+        // 画面の再描画
         function renderUI() {
             const today = new Date().toISOString().split('T')[0];
             const tasks = getTasks();
             const todos = getTodos();
             const stats = getStats();
 
-            // ToDoリスト：削除ボタンを完了ボタンの左に配置
+            // ToDoリスト表示
             document.getElementById('todoList').innerHTML = todos.map(t => `
                 <div class="task-item" style="border-left: 5px solid var(--todo-color)">
                     <span>${t.name}</span>
@@ -181,76 +188,44 @@
                         <button class="btn-delete" onclick="deleteTodo(${t.id})">削除</button>
                         <button class="btn-done" onclick="completeTodo(${t.id})">完了</button>
                     </div>
-                </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.75rem;">ToDoはありません</p>';
+                </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.8rem;">ToDoはありません</p>';
 
-            // 今日の復習
-            document.getElementById('todayReviewList').innerHTML = tasks.filter(t => t.reviews.some(d => d <= today)).map(t => `
+            // 今日の復習表示
+            document.getElementById('todayReviewList').innerHTML = tasks.filter(t => t.reviews.includes(today)).map(t => `
                 <div class="task-item" style="border-left: 5px solid var(--primary-color)">
-                    <span>${t.name}</span><button class="btn-done" onclick="completeReview(${t.id})">今日実施</button>
-                </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.75rem;">今日の復習はありません</p>';
+                    <span>${t.name}</span>
+                    <button class="btn-done" onclick="completeReview(${t.id})">今日実施</button>
+                </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.8rem;">今日の復習はありません</p>';
 
-            // スケジュール一括削除（画面下部）
+            // 一括削除管理
             document.getElementById('allTasksManagementList').innerHTML = tasks.map(t => `
                 <div class="task-item" style="border-left: 5px solid #ccc">
-                    <span>${t.name}</span><button class="btn-delete" onclick="deleteFullTask(${t.id})">削除</button>
-                </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.75rem;">登録データはありません</p>';
+                    <span>${t.name}</span>
+                    <button class="btn-delete" onclick="deleteFullTask(${t.id})">削除</button>
+                </div>`).join('') || '<p style="text-align:center; color:#ccc; font-size:0.8rem;">登録データはありません</p>';
 
             document.getElementById('streakCount').innerText = stats.streak;
             document.getElementById('totalDone').innerText = stats.total;
         }
 
-        async function handleAuth() {
-            if (auth.currentUser) { if(confirm("ログアウトしますか？")) await auth.signOut(); location.reload(); }
-            else { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-        }
-
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                document.getElementById('loginBtn').innerText = "✅ 同期中";
-                db.collection("users").doc(user.uid).get().then(doc => {
-                    if (doc.exists) {
-                        const d = doc.data();
-                        localStorage.setItem('myTasks', JSON.stringify(d.tasks || []));
-                        localStorage.setItem('myTodos', JSON.stringify(d.todos || []));
-                        localStorage.setItem('myStats', JSON.stringify(d.stats || {total:0, streak:0, lastDate:""}));
-                        renderUI(); if(calendar) calendar.refetchEvents();
-                    }
-                });
-            }
-        });
-
+        // 起動時の初期化
         document.addEventListener('DOMContentLoaded', function() {
-            calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-                initialView: 'dayGridTwoWeeks',
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
                 locale: 'ja',
-                height: 'auto',
-                headerToolbar: { left: 'prev', center: 'title', right: 'next' },
-                dayCellContent: (arg) => (arg.date.getMonth() + 1) + '/' + arg.date.getDate(),
-                events: (info, success) => {
-                    const tasks = getTasks();
-                    let events = [];
-                    tasks.forEach(t => {
-                        const totalRounds = 5;
-                        t.reviews.forEach(d => {
-                            const futureReviews = t.reviews.filter(rd => rd > d).length;
-                            const roundNum = totalRounds - futureReviews;
-                            events.push({ title: `${t.name} (${roundNum}回目)`, start: d, backgroundColor: '#4a90e2', extendedProps: { taskId: t.id } });
-                        });
-                    });
-                    success(events);
-                },
-                eventClick: (info) => {
+                headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,dayGridTwoWeeks' },
+                views: { dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 }, buttonText: '2週間' } },
+                events: generateCalendarEvents(getTasks()),
+                eventClick: function(info) {
                     const tasks = getTasks();
                     const idx = tasks.findIndex(t => t.id === info.event.extendedProps.taskId);
+                    if (idx === -1) return;
                     const newName = prompt("名前を変更しますか？", tasks[idx].name);
-                    if (newName) { tasks[idx].name = newName; save(tasks, getTodos(), getStats()); }
-                },
-                datesSet: () => {
-                    const title = document.querySelector('.fc-toolbar-title');
-                    if (title) title.onclick = () => {
-                        isTwoWeekMode = !isTwoWeekMode;
-                        calendar.changeView(isTwoWeekMode ? 'dayGridTwoWeeks' : 'dayGridMonth');
-                    };
+                    if (newName) {
+                        tasks[idx].name = newName;
+                        save(tasks, getTodos(), getStats());
+                    }
                 }
             });
             calendar.render();
