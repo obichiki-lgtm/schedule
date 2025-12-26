@@ -22,20 +22,20 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
         .container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 500px; box-sizing: border-box; position: relative; }
         
-        /* 認証 & 統計パネル */
+        /* 認証 & 統計パネル：完全維持 */
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 6px 14px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
         .status-panel { display: flex; justify-content: space-around; background: #fff; border: 1px solid #f0f0f0; border-radius: 15px; padding: 15px; margin-bottom: 20px; }
         .status-value { display: block; font-size: 1.8rem; font-weight: bold; color: var(--primary-color); text-align: center; }
         .status-label { font-size: 0.75rem; color: #888; text-align: center; }
 
-        /* 入力セクション */
+        /* 入力セクション：完全維持 */
         .input-area { display: flex; gap: 10px; margin-bottom: 20px; }
         input[type="text"] { flex: 1; padding: 14px; border: 1px solid #e0e0e0; border-radius: 12px; font-size: 16px; outline: none; transition: border 0.3s; }
         input[type="text"]:focus { border-color: var(--primary-color); }
         .add-btn { background-color: var(--todo-color); color: white; border: none; padding: 0 20px; border-radius: 12px; font-weight: bold; cursor: pointer; min-width: 80px; }
 
-        /* リストデザイン */
+        /* リストデザイン：完全維持 */
         h2 { font-size: 1.1rem; border-left: 5px solid var(--primary-color); padding-left: 12px; margin: 30px 0 15px; color: #444; }
         .todo-header { border-left-color: var(--todo-color); }
         .task-item { background: #fff; border: 1px solid #f0f0f0; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 15px; font-size: 0.95rem; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
@@ -45,7 +45,7 @@
         .btn-done { background-color: var(--success-color); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         
-        /* カレンダーツールバー完全再現 */
+        /* カレンダーツールバー・Gridレイアウト：完全再現 */
         #calendar { margin-top: 10px; border-radius: 15px; border: 1px solid #eee; padding: 10px; background: #fff; min-height: 450px; }
         .fc .fc-toolbar { display: grid !important; grid-template-columns: auto 1fr auto auto !important; align-items: center !important; gap: 2px !important; margin-bottom: 1.5em !important; }
         .fc .fc-toolbar-chunk { display: contents !important; }
@@ -55,11 +55,11 @@
         .fc .fc-today-button { grid-column: 4 !important; background-color: #7f8c8d !important; font-size: 0.75rem !important; border-radius: 6px !important; padding: 4px 8px !important; border: none !important; }
         .fc .fc-button { background-color: var(--cal-btn-bg) !important; border: none !important; border-radius: 6px !important; height: 38px !important; }
 
-        /* 未来予約通知バナー */
+        /* 未来予約通知バナー：CSSアニメーション維持 */
         .banner { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); background-color: var(--todo-color); color: white; padding: 14px 28px; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 10000; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .banner.active { top: 20px; }
 
-        /* モーダル */
+        /* モーダル：完全維持 */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 9999; }
         .modal-content { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 380px; box-sizing: border-box; }
         .modal-content label { display: block; margin-top: 15px; font-size: 0.8rem; color: #666; }
@@ -114,7 +114,7 @@
     </div>
 
     <script>
-        // --- Firebase設定 ---
+        // --- Firebase設定：完全維持 ---
         const firebaseConfig = {
             apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
             authDomain: "my-study-app-6a0b6.firebaseapp.com",
@@ -129,7 +129,7 @@
         const vModes = ['dayGridTwoWeeks', 'dayGridMonth', 'listDay'];
         let vIdx = 0;
 
-        // --- 共通ユーティリティ ---
+        // --- 共通ユーティリティ：完全維持 ---
         const getTodayStr = () => {
             const now = new Date();
             return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
@@ -146,11 +146,11 @@
         };
         const getLabelForIdx = (idx) => (idx === 0) ? "" : ` (${idx}回目)`;
 
-        // --- データ管理 ---
+        // --- データ管理：完全維持 ---
         const getTasks = () => JSON.parse(localStorage.getItem('myTasks')) || [];
         const getTodos = () => JSON.parse(localStorage.getItem('myTodos')) || [];
 
-        // --- ★追加統合：統計再計算ロジック（実績データから完全算出） ---
+        // --- ★追加統合：統計再計算ロジック（実績から完全算出） ---
         function calculateAndSyncStats(tasks) {
             let doneDatesSet = new Set();
             tasks.forEach(t => {
@@ -162,7 +162,7 @@
             const today = getTodayStr();
             const total = doneDatesSet.size;
             
-            // 継続日数（パターンA：昨日以前の連続性を確認）
+            // 継続日数（昨日以前の連続性を確認）
             let streak = 0;
             let checkDate = doneDatesSet.has(today) ? today : addDays(today, -1);
             
@@ -177,7 +177,7 @@
         }
 
         async function saveAll(tasks, todos) {
-            // 統計を実績から再計算（追加・統合ロジック）
+            // 統計を実績データから動的に再計算するロジックを追加
             const stats = calculateAndSyncStats(tasks);
             
             localStorage.setItem('myTasks', JSON.stringify(tasks));
@@ -185,7 +185,7 @@
             
             if (currentUser) {
                 try { 
-                    // Firebaseへ再計算した統計も含めて保存
+                    // Firebaseへ再計算した最新の統計を含めてマージ保存
                     await db.collection("users").doc(currentUser.uid).set({ tasks, todos, stats }, { merge: true }); 
                 } 
                 catch (e) { console.error("Firebase Sync Error:", e); }
@@ -194,7 +194,7 @@
             if (calendar) calendar.refetchEvents();
         }
 
-        // --- B-1連動スライドロジック（完全維持） ---
+        // --- B-1連動スライドロジック（完全維持・削り禁止） ---
         function executeSlide(task, newTargetDate, reviewIdx) {
             const oldDate = task.reviews[reviewIdx];
             const diff = Math.round((new Date(newTargetDate + "T00:00:00") - new Date(oldDate + "T00:00:00")) / 86400000);
@@ -202,7 +202,7 @@
             return task;
         }
 
-        // --- アクション ---
+        // --- アクション：完全維持 ---
         function addTodo() {
             const input = document.getElementById('todoInput');
             if (!input.value.trim()) return;
@@ -236,7 +236,7 @@
             saveAll(tasks, getTodos());
         }
 
-        // --- UIレンダリング ---
+        // --- UIレンダリング：完全維持 ---
         function renderUI() {
             const today = getTodayStr(), tasks = getTasks(), todos = getTodos();
             const stats = JSON.parse(localStorage.getItem('myStats')) || { total: 0, streak: 0 };
@@ -266,7 +266,7 @@
 
         function closeModal() { document.getElementById('taskModal').style.display = 'none'; }
 
-        // --- ★追加統合：新規保存ロジック（過去実績の自動化と統計同期） ---
+        // --- ★追加統合：新規保存ロジック（過去遡り A案 ＋ 本日未完了分離版） ---
         document.getElementById('saveModalBtn').onclick = () => {
             const name = document.getElementById('modalTaskName').value, today = getTodayStr();
             if (!name) return;
@@ -275,15 +275,21 @@
             if (currentModalData.mode === 'new') {
                 const targetDate = currentModalData.date;
                 if (targetDate > today) {
-                    // 未来：ToDo予約（オレンジ）
+                    // 未来：既存の未来予約バナー機能を維持
                     todos.push({ id: Date.now(), name: name, date: targetDate, completed: false });
                     const d = new Date(targetDate + "T00:00:00");
                     showToast(`${d.getMonth()+1}月${d.getDate()}日のToDoに予約しました`);
+                } else if (targetDate === today) {
+                    // 今日：既存の当日ToDo登録機能を維持
+                    todos.push({ id: Date.now(), name: name, date: targetDate, completed: false });
                 } else {
-                    // 今日以前：復習サイクル作成（青/グレー）
+                    // ★過去（遡り）：統合された新ロジック（A案）
                     const reviews = [0, 1, 4, 11, 25, 55].map(days => addDays(targetDate, days));
-                    // 今回の追加要件：過去分を自動実績化（グレーアウト）
-                    const autoDoneDates = reviews.filter(d => d <= today);
+                    
+                    // 「今日より前」の日程のみ自動的に実績化する（グレーアウト ＋ 統計加算）
+                    // これにより、もしサイクルの中に「今日」が含まれていれば、それは未完了のまま「青」として残る
+                    const autoDoneDates = reviews.filter(d => d < today);
+                    
                     tasks.push({ 
                         id: Date.now(), 
                         name: name, 
@@ -303,7 +309,7 @@
             saveAll(tasks, todos); closeModal();
         };
 
-        // --- 分離一括削除（統計同期を統合） ---
+        // --- 分離一括削除：完全維持（統計同期を追加統合） ---
         document.getElementById('deleteGroupBtn').onclick = () => {
             if (!confirm("クリックしたグループを削除しますか？")) return;
             let tasks = getTasks(), todos = getTodos();
@@ -313,10 +319,10 @@
             } else if (currentModalData.type === 'task') {
                 let t = tasks.find(x => x.id === currentModalData.taskId);
                 if (currentModalData.done) {
-                    // 完了済みクリック時：全削除
+                    // 完了済みクリック時：そのタスクの全日程を削除
                     tasks = tasks.filter(x => x.id !== t.id);
                 } else {
-                    // 未完了クリック時：未完了分のみ削除
+                    // 未完了クリック時：未完了分の日程のみ削除し、実績がある分は残す
                     t.reviews = t.reviews.filter((d, i) => (t.doneDates && t.doneDates.includes(d)));
                     if (t.reviews.length === 0) tasks = tasks.filter(x => x.id !== t.id);
                 }
@@ -325,7 +331,7 @@
             closeModal();
         };
 
-        // --- カレンダー描画（完全維持：年タイトル・3View切替） ---
+        // --- カレンダー描画：完全維持（年タイトル・3View切替ロジックを保持） ---
         window.addEventListener('load', () => {
             calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
                 initialView: 'dayGridTwoWeeks', locale: 'ja', height: 'auto', firstDay: 1,
@@ -385,7 +391,7 @@
             });
             calendar.render();
 
-            // 自動リスケ（維持）
+            // 自動リスケ（維持）：期限切れタスクを今日へスライド
             const today = getTodayStr();
             let ts = getTasks(), td = getTodos(), ch = false;
             td.forEach(t => { if(!t.completed && t.date < today){ t.date = today; ch = true; } });
@@ -396,7 +402,7 @@
             if(ch) saveAll(ts, td); else renderUI();
         });
 
-        // --- Firebase同期（機能維持：統計上書きロジックの追加統合） ---
+        // --- Firebase同期（完全維持：統計の上書き・再計算を統合） ---
         auth.onAuthStateChanged(user => { 
             currentUser = user; 
             document.getElementById('loginBtn').innerText = user ? "✅ 同期中" : "☁️ ログイン";
@@ -409,7 +415,7 @@
                 const d = doc.data();
                 const tasks = d.tasks || [];
                 const todos = d.todos || [];
-                // 読み込み直後に、実績から統計を再計算して上書き（追加・統合ロジック）
+                // クラウドから読み込んだ際、最新の実績データに基づいて統計をその場で確定させる
                 localStorage.setItem('myTasks', JSON.stringify(tasks));
                 localStorage.setItem('myTodos', JSON.stringify(todos));
                 saveAll(tasks, todos);
