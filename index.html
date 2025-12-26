@@ -55,7 +55,7 @@
         .fc .fc-today-button { grid-column: 4 !important; background-color: #7f8c8d !important; font-size: 0.75rem !important; border-radius: 6px !important; padding: 4px 8px !important; border: none !important; }
         .fc .fc-button { background-color: var(--cal-btn-bg) !important; border: none !important; border-radius: 6px !important; height: 38px !important; }
 
-        /* 未来予約通知バナー：CSSアニメーション維持 */
+        /* 未来予約通知バナー：CSS維持 */
         .banner { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); background-color: var(--todo-color); color: white; padding: 14px 28px; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 10000; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .banner.active { top: 20px; }
 
@@ -177,7 +177,7 @@
         }
 
         async function saveAll(tasks, todos) {
-            // 統計を実績データから動的に再計算するロジックを追加
+            // 統計を実績データから動的に再計算するロジックを統合（削除なし）
             const stats = calculateAndSyncStats(tasks);
             
             localStorage.setItem('myTasks', JSON.stringify(tasks));
@@ -309,7 +309,7 @@
             saveAll(tasks, todos); closeModal();
         };
 
-        // --- 分離一括削除：完全維持（統計同期を追加統合） ---
+        // --- 分離一括削除：完全維持（統計同期を統合） ---
         document.getElementById('deleteGroupBtn').onclick = () => {
             if (!confirm("クリックしたグループを削除しますか？")) return;
             let tasks = getTasks(), todos = getTodos();
@@ -331,7 +331,7 @@
             closeModal();
         };
 
-        // --- カレンダー描画：完全維持（年タイトル・3View切替ロジックを保持） ---
+        // --- カレンダー描画：全ロジック完全維持 ＋ 【新規】重複排除ロジックの丁寧な統合 ---
         window.addEventListener('load', () => {
             calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
                 initialView: 'dayGridTwoWeeks', locale: 'ja', height: 'auto', firstDay: 1,
@@ -344,17 +344,34 @@
                 views: { dayGridTwoWeeks: { type: 'dayGrid', duration: { weeks: 2 } } },
                 events: (info, success) => {
                     const tasks = getTasks(), todos = getTodos();
-                    const tEvs = tasks.flatMap(t => t.reviews.map((d, i) => {
-                        const isDone = (t.doneDates && t.doneDates.includes(d));
-                        return { 
-                            title: t.name + getLabelForIdx(i), 
-                            start: d, 
-                            backgroundColor: isDone ? '#f2f4f7' : '#4a90e2', 
-                            textColor: isDone ? '#999' : '#fff', 
-                            borderColor: 'transparent',
-                            extendedProps: { taskId: t.id, idx: i, type: 'task', done: isDone } 
-                        };
-                    }));
+                    const tEvs = [];
+                    
+                    // タスクイベントの生成ループ
+                    tasks.forEach(t => {
+                        t.reviews.forEach((d, i) => {
+                            const isDone = (t.doneDates && t.doneDates.includes(d));
+                            
+                            /* 【新規追加ロジック：重複表示の抑制】
+                               ToDoリストから完了した際、実績(グレー)とタスクの0回目(青またはグレー)が重なるのを防ぎます。
+                               条件：0回目の予定であり、かつ日付が開始日と一致し、かつ既に実績として存在する場合のみ
+                               描画をスキップ（return）します。
+                            */
+                            if (i === 0 && d === t.startDate && isDone) {
+                                return; 
+                            }
+
+                            tEvs.push({ 
+                                title: t.name + getLabelForIdx(i), 
+                                start: d, 
+                                backgroundColor: isDone ? '#f2f4f7' : '#4a90e2', 
+                                textColor: isDone ? '#999' : '#fff', 
+                                borderColor: 'transparent',
+                                extendedProps: { taskId: t.id, idx: i, type: 'task', done: isDone } 
+                            });
+                        });
+                    });
+
+                    // ToDoイベントの生成（完全維持）
                     const oEvs = todos.map(t => ({ 
                         title: t.name, 
                         start: t.date, 
