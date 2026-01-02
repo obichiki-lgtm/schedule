@@ -3,18 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>学習スケジューラー 統合完全版</title>
-
+    <title>学習スケジューラー</title>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-
     <style>
-        /* ==========================================
-           1. index (21).html 固有デザインの完全復元
-           ========================================== */
         :root {
             --primary-color: #4a90e2;
             --bg-color: #f8fafb;
@@ -23,530 +17,124 @@
             --danger-color: #ff4d4f;
             --text-color: #333;
             --cal-btn-bg: #2c3e50;
-            --test-color: #9b59b6; /* 拡張機能用カラー */
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 10px;
-            display: flex;
-            justify-content: center;
-            line-height: 1.6;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 500px; box-sizing: border-box; position: relative; }
+        
+        /* 認証 & 統計パネル（維持） */
+        .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
+        #loginBtn { background: #eee; border: none; padding: 6px 14px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
+        .status-panel { display: flex; justify-content: space-around; background: #fff; border: 1px solid #f0f0f0; border-radius: 15px; padding: 15px; margin-bottom: 20px; }
+        .status-value { display: block; font-size: 1.8rem; font-weight: bold; color: var(--primary-color); text-align: center; }
+        .status-label { font-size: 0.75rem; color: #888; text-align: center; }
 
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            width: 100%;
-            max-width: 500px;
-            box-sizing: border-box;
-            position: relative;
-        }
+        /* 入力セクション（[完了]ボタン追加に伴い入力欄を短く調整） */
+        .input-area { display: flex; gap: 8px; margin-bottom: 20px; }
+        input[type="text"] { flex: 1; padding: 14px; border: 1px solid #e0e0e0; border-radius: 12px; font-size: 16px; outline: none; transition: border 0.3s; min-width: 0; }
+        input[type="text"]:focus { border-color: var(--primary-color); }
+        .add-btn { background-color: var(--todo-color); color: white; border: none; padding: 0 15px; border-radius: 12px; font-weight: bold; cursor: pointer; min-width: 60px; font-size: 0.85rem; }
+        
+        /* 物理的追加：直接完了ボタン用スタイル */
+        .direct-done-btn { background-color: var(--success-color); color: white; border: none; padding: 0 15px; border-radius: 12px; font-weight: bold; cursor: pointer; min-width: 60px; font-size: 0.85rem; }
 
-        /* ログイン・認証ヘッダー */
-        .auth-header {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 5px;
-        }
-        #loginBtn {
-            background: #eee;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 11px;
-            cursor: pointer;
-            color: #666;
-            font-weight: bold;
-            transition: background 0.3s;
-        }
-        #loginBtn:hover { background: #e0e0e0; }
-
-        /* 統計パネル (index (21).html 独自形状) */
-        .status-panel {
-            display: flex;
-            justify-content: space-around;
-            background: #fff;
-            border: 1px solid #f0f0f0;
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        .status-item { flex: 1; text-align: center; }
-        .status-value {
-            display: block;
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-        .status-label {
-            font-size: 0.75rem;
-            color: #888;
-        }
-
-        /* 入力エリアと「実績化」ボタン */
-        .input-area {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-        input[type="text"] {
-            flex: 1;
-            padding: 14px;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            font-size: 16px;
-            outline: none;
-            transition: border 0.3s, box-shadow 0.3s;
-            min-width: 0;
-        }
-        input[type="text"]:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
-        }
-        .add-btn {
-            background-color: var(--todo-color);
-            color: white;
-            border: none;
-            padding: 0 15px;
-            border-radius: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            min-width: 60px;
-            font-size: 0.85rem;
-            white-space: nowrap;
-        }
-        .direct-done-btn {
-            background-color: var(--success-color);
-            color: white;
-            border: none;
-            padding: 0 15px;
-            border-radius: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            min-width: 60px;
-            font-size: 0.85rem;
-            white-space: nowrap;
-        }
-
-        /* 見出しデザイン */
-        h2 {
-            font-size: 1.1rem;
-            border-left: 5px solid var(--primary-color);
-            padding-left: 12px;
-            margin: 30px 0 15px;
-            color: #444;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        /* リストデザイン（維持） */
+        h2 { font-size: 1.1rem; border-left: 5px solid var(--primary-color); padding-left: 12px; margin: 30px 0 15px; color: #444; }
         .todo-header { border-left-color: var(--todo-color); }
-
-        /* タスク・リストアイテム */
-        .task-item {
-            background: #fff;
-            border: 1px solid #f0f0f0;
-            padding: 14px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 15px;
-            font-size: 0.95rem;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-            transition: transform 0.2s;
-        }
+        .task-item { background: #fff; border: 1px solid #f0f0f0; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 15px; font-size: 0.95rem; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         .todo-item { border-left: 6px solid var(--todo-color); }
         .review-item { border-left: 6px solid var(--primary-color); }
         .button-group { display: flex; gap: 8px; }
-        .btn-done {
-            background-color: var(--success-color);
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .btn-delete {
-            background-color: var(--danger-color);
-            color: white;
-            border: none;
-            padding: 10px 14px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        /* カレンダー設定 (grid を使ったカスタムヘッダーを完全復元) */
-        #calendar {
-            margin-top: 10px;
-            border-radius: 15px;
-            border: 1px solid #eee;
-            padding: 10px;
-            background: #fff;
-            min-height: 450px;
-        }
-        .fc .fc-toolbar {
-            display: grid !important;
-            grid-template-columns: auto 1fr auto auto !important;
-            align-items: center !important;
-            gap: 2px !important;
-            margin-bottom: 1.5em !important;
-        }
+        .btn-done { background-color: var(--success-color); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
+        .btn-delete { background-color: var(--danger-color); color: white; border: none; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
+        
+        /* カレンダー設定（維持） */
+        #calendar { margin-top: 10px; border-radius: 15px; border: 1px solid #eee; padding: 10px; background: #fff; min-height: 450px; }
+        .fc .fc-toolbar { display: grid !important; grid-template-columns: auto 1fr auto auto !important; align-items: center !important; gap: 2px !important; margin-bottom: 1.5em !important; }
         .fc .fc-toolbar-chunk { display: contents !important; }
-        .fc .fc-toolbar-title {
-            grid-column: 2 !important;
-            font-size: 0.78rem !important;
-            font-weight: bold !important;
-            padding: 8px 4px !important;
-            border: 1px solid #e0e0e0 !important;
-            border-radius: 8px !important;
-            background: #fff !important;
-            cursor: pointer !important;
-            text-align: center !important;
-            margin: 0 4px !important;
-            white-space: nowrap;
-            overflow: hidden;
-        }
+        .fc .fc-toolbar-title { grid-column: 2 !important; font-size: 0.78rem !important; font-weight: bold !important; padding: 8px 4px !important; border: 1px solid #e0e0e0 !important; border-radius: 8px !important; background: #fff !important; cursor: pointer !important; text-align: center !important; margin: 0 4px !important; white-space: nowrap; overflow: hidden; }
         .fc .fc-prev-button { grid-column: 1 !important; }
         .fc .fc-next-button { grid-column: 3 !important; }
-        .fc .fc-today-button {
-            grid-column: 4 !important;
-            background-color: #7f8c8d !important;
-            font-size: 0.75rem !important;
-            border-radius: 6px !important;
-            padding: 4px 8px !important;
-            border: none !important;
-        }
-        .fc .fc-button {
-            background-color: var(--cal-btn-bg) !important;
-            border: none !important;
-            border-radius: 6px !important;
-            height: 38px !important;
-        }
+        .fc .fc-today-button { grid-column: 4 !important; background-color: #7f8c8d !important; font-size: 0.75rem !important; border-radius: 6px !important; padding: 4px 8px !important; border: none !important; }
+        .fc .fc-button { background-color: var(--cal-btn-bg) !important; border: none !important; border-radius: 6px !important; height: 38px !important; }
 
-        /* メモセクション (開閉アイコン付) */
-        .memo-header {
-            border-left-color: #556b2f !important;
-            cursor: pointer;
-        }
-        .memo-area {
-            margin-top: 10px;
-            margin-bottom: 30px;
-            display: none;
-        }
-        #memoInput {
-            width: 100%;
-            height: 180px;
-            padding: 15px;
-            border: 1px solid #e0e0e0;
-            border-radius: 15px;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            resize: vertical;
-            box-sizing: border-box;
-            outline: none;
-            transition: border 0.3s;
-            background: #fff;
-        }
-
-        /* ==========================================
-           2. 修正してほしいやつ.html 拡張機能デザイン
-           ========================================== */
-        .test-maker-bar {
-            background: #fdfaff;
-            border: 1px solid #ece0f5;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            color: var(--test-color);
-        }
-        #testFormContainer {
-            display: none;
-            background: #fff;
-            border: 1px solid #eee;
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 20px;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
-        }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 5px; }
-        
-        /* 画像アップロード関連 */
-        .img-upload-btn {
-            background: #f0f0f0;
-            border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            text-align: center;
-            display: block;
-            width: 100%;
-            margin-bottom: 5px;
-        }
-        .preview-img {
-            max-width: 100%;
-            max-height: 150px;
-            object-fit: contain;
-            border-radius: 8px;
-            display: none;
-            border: 1px solid #eee;
-            margin-bottom: 10px;
-        }
-        .tag-input-field {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            font-size: 0.85rem;
-        }
-
-        /* テスト実行オーバーレイ */
-        #testOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: white;
-            z-index: 20000;
-            display: none;
-            flex-direction: column;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .test-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .test-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            overflow-y: auto;
-        }
-        .test-q-text { font-size: 1.4rem; font-weight: bold; margin-bottom: 20px; }
-        .test-a-text {
-            font-size: 1.1rem;
-            color: var(--primary-color);
-            background: #f0f7ff;
-            padding: 15px;
-            border-radius: 12px;
-            width: 100%;
-            box-sizing: border-box;
-            display: none;
-            margin-top: 20px;
-        }
-        .test-img-display {
-            max-width: 100%;
-            max-height: 250px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-        /* SRS 判定ボタン */
-        .judge-area {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            width: 100%;
-            margin-top: 20px;
-        }
-        .judge-btn {
-            padding: 16px;
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-        .btn-again { background: #e74c3c; }
-        .btn-hard  { background: #f39c12; }
-        .btn-good  { background: #2980b9; }
-        .btn-easy  { background: #27ae60; }
-
-        /* モーダル (index (21).html 形状) */
-        .modal-footer {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 25px;
-        }
-        .banner {
-            position: fixed;
-            top: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: var(--todo-color);
-            color: white;
-            padding: 14px 28px;
-            border-radius: 50px;
-            font-weight: bold;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            z-index: 10000;
-            transition: top 0.4s;
-        }
+        /* 通知バナー（維持） */
+        .banner { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); background-color: var(--todo-color); color: white; padding: 14px 28px; border-radius: 50px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 10000; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .banner.active { top: 20px; }
+
+        /* モーダル（維持） */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 9999; }
+        .modal-content { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 380px; box-sizing: border-box; }
+        .modal-content label { display: block; margin-top: 15px; font-size: 0.8rem; color: #666; }
+        .modal-content input { width: 100%; margin-top: 5px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .modal-footer { display: flex; flex-direction: column; gap: 10px; margin-top: 25px; }
+        .modal-btns-row { display: flex; gap: 10px; }
+        .modal-footer button { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; }
+
+        /* メモエリア（維持） */
+        .memo-header { border-left-color: #556b2f !important; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .memo-area { margin-top: 10px; margin-bottom: 30px; display: none; }
+        #memoInput { width: 100%; height: 180px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 15px; font-size: 0.95rem; line-height: 1.6; resize: vertical; box-sizing: border-box; outline: none; transition: border 0.3s; background: #fff; color: #444; }
+        #memoInput:focus { border-color: var(--primary-color); }
+        .calendar-header { border-left-color: #2c3e50 !important; }
     </style>
 </head>
 <body>
-
-    <div id="toastBanner" class="banner">通知メッセージ</div>
+    <div id="toastBanner" class="banner"></div>
 
     <div class="container">
-        <div class="auth-header">
-            <button id="loginBtn" onclick="handleAuth()"> ログイン</button>
-        </div>
-
+        <div class="auth-header"><button id="loginBtn" onclick="handleAuth()"> ログイン</button></div>
         <h1 style="font-size:1.4rem; text-align:center; color:var(--primary-color); margin: 5px 0 20px;">学習スケジューラー</h1>
         
         <div class="status-panel">
-            <div class="status-item">
-                <span class="status-value" id="streakCount">0</span>
-                <span class="status-label">🔥 継続日数</span>
-            </div>
-            <div class="status-item">
-                <span class="status-value" id="totalDone">0</span>
-                <span class="status-label">🏆 累計完了</span>
-            </div>
+            <div><span class="status-value" id="streakCount">0</span><span class="status-label">🔥 継続日数</span></div>
+            <div><span class="status-value" id="totalDone">0</span><span class="status-label">🏆 累計完了</span></div>
         </div>
 
         <div class="input-area">
-            <input type="text" id="todoInput" placeholder="学習内容を入力してください...">
+            <input type="text" id="todoInput" placeholder="学習内容を入力してください">
             <button class="add-btn" onclick="addTodo()">登録</button>
             <button class="direct-done-btn" onclick="addDirectDone()">完了</button>
         </div>
 
-        <div class="test-maker-bar" onclick="toggleElement('testFormContainer')">
-            <span>📝 復習カードを作成する</span>
-            <span id="testMakerArrow">▼</span>
-        </div>
-        <div id="testFormContainer">
-            <div class="form-group">
-                <label>問題</label>
-                <input type="text" id="cardQ" placeholder="例: 憲法第13条の内容は？">
-            </div>
-            <div class="form-group">
-                <button class="img-upload-btn" onclick="document.getElementById('fileQ').click()">📷 問題に画像を添付</button>
-                <input type="file" id="fileQ" hidden accept="image/*" onchange="handleImgPreview(this, 'previewQ', 'urlQ')">
-                <img id="previewQ" class="preview-img">
-                <input type="hidden" id="urlQ">
-            </div>
-            <div class="form-group">
-                <label>解答</label>
-                <textarea id="cardA" placeholder="例: 個人の尊重、幸福追求権..." style="width:100%; border-radius:10px; border:1px solid #ddd; padding:8px;"></textarea>
-            </div>
-            <div class="form-group">
-                <button class="img-upload-btn" onclick="document.getElementById('fileA').click()">📷 解答に画像を添付</button>
-                <input type="file" id="fileA" hidden accept="image/*" onchange="handleImgPreview(this, 'previewA', 'urlA')">
-                <img id="previewA" class="preview-img">
-                <input type="hidden" id="urlA">
-            </div>
-            <div class="form-group">
-                <label>タグ（カンマ区切り）</label>
-                <input type="text" id="cardTags" class="tag-input-field" placeholder="英語, 単語, 専門..." >
-            </div>
-            <button class="btn-done" style="width:100%;" onclick="addFlashcard()">カードを保存する</button>
-        </div>
-
         <h2 class="todo-header">ToDoリスト</h2>
         <div id="todoList"></div>
-
-        <h2 style="border-left-color: var(--test-color);">🎯 今日の復習テスト</h2>
-        <div id="testActionArea"></div>
-
-        <h2>復習タスク (カレンダー連動)</h2>
+        <h2>復習タスク</h2>
         <div id="todayReviewList"></div>
 
         <h2 class="memo-header" onclick="toggleMemo()">
-            学習メモ
+            メモ
             <span id="memoArrow" style="font-size: 0.8rem; color: #ccc;">▼</span>
         </h2>
         <div class="memo-area" id="memoContainer">
-            <textarea id="memoInput" placeholder="今日の気づきや反省を自由に書き残しましょう..."></textarea>
+            <textarea id="memoInput" placeholder="学習の記録や気づきを自由に記入してください"></textarea>
         </div>
 
         <h2 class="calendar-header">カレンダー</h2>
         <div id="calendar"></div>
-
-        <h2 style="border-left-color: #e67e22;">📚 学習ログ & タグ</h2>
-        <div id="tagStats" style="margin-bottom:20px;"></div>
-        <button class="btn-delete" style="width:100%; background:#7f8c8d;" onclick="startRandomTest()">🎲 ランダム10問テスト</button>
-    </div>
-
-    <div id="testOverlay">
-        <div class="test-header">
-            <span id="testProgress" style="font-weight:bold; color:#888;">0 / 0</span>
-            <button onclick="closeTest()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">✕</button>
-        </div>
-        <div class="test-body">
-            <img id="displayImgQ" class="test-img-display" style="display:none;">
-            <div id="displayTextQ" class="test-q-text"></div>
-            
-            <button id="showAnswerBtn" class="btn-done" style="background:var(--primary-color);" onclick="revealAnswer()">答えを表示</button>
-
-            <div id="answerSection" style="display:none; width:100%;">
-                <div id="displayTextA" class="test-a-text"></div>
-                <img id="displayImgA" class="test-img-display" style="display:none; margin-top:10px;">
-                
-                <div class="judge-area">
-                    <button class="judge-btn btn-again" onclick="submitJudge('again')">やり直し</button>
-                    <button class="judge-btn btn-hard"  onclick="submitJudge('hard')">難しい</button>
-                    <button class="judge-btn btn-good"  onclick="submitJudge('good')">正解</button>
-                    <button class="judge-btn btn-easy"  onclick="submitJudge('easy')">簡単</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div class="modal-overlay" id="taskModal">
         <div class="modal-content">
             <h3 id="modalTitle" style="margin:0;">予定の編集</h3>
-            <div style="margin-top:15px;">
-                <label style="font-size:0.8rem; color:#888;">学習内容:</label>
-                <input type="text" id="modalName" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
-            </div>
-            <div id="modalDateGroup" style="margin-top:15px;">
-                <label style="font-size:0.8rem; color:#888;">日付:</label>
-                <input type="date" id="modalDate" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+            <label>内容:</label>
+            <input type="text" id="modalTaskName">
+            <div id="editOnlyArea">
+                <label>日付:</label>
+                <input type="date" id="modalTaskDate">
             </div>
             <div class="modal-footer">
-                <div style="display:flex; gap:10px;">
-                    <button onclick="closeModal()" style="flex:1; background:#eee; border:none; padding:12px; border-radius:10px; font-weight:bold;">戻る</button>
-                    <button id="saveBtn" style="flex:1; background:var(--primary-color); color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">保存</button>
+                <div class="modal-btns-row">
+                    <button style="background:#eee;" onclick="closeModal()">戻る</button>
+                    <button style="background:var(--primary-color); color:white;" id="saveModalBtn">保存</button>
                 </div>
-                <button id="deleteBtn" style="background:var(--danger-color); color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">このシリーズを全て削除</button>
+                <button style="background:var(--danger-color); color:white;" id="deleteGroupBtn">この予定を全て削除</button>
             </div>
         </div>
     </div>
 
     <script>
-        /* ==========================================
-           3. Firebase & 基本ロジック (1行も削らず統合)
-           ========================================== */
+        // --- Firebase設定（完全維持：index (20).htmlより） ---
         const firebaseConfig = {
             apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
             authDomain: "my-study-app-6a0b6.firebaseapp.com",
@@ -558,15 +146,14 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-        const storage = firebase.storage();
 
         let currentUser = null;
         let calendar = null;
         let currentModalData = null;
-        let testSession = [];
-        let currentTestIdx = 0;
+        const vModes = ['dayGridTwoWeeks', 'dayGridMonth', 'listDay'];
+        let vIdx = 0;
 
-        // 日付操作ユーティリティ
+        // --- 共通ユーティリティ（完全維持） ---
         const getTodayStr = () => {
             const now = new Date();
             const y = now.getFullYear();
@@ -574,378 +161,407 @@
             const d = String(now.getDate()).padStart(2, '0');
             return `${y}-${m}-${d}`;
         };
+
         const addDays = (dateStr, days) => {
             const d = new Date(dateStr + "T00:00:00");
             d.setDate(d.getDate() + days);
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const ry = d.getFullYear();
+            const rm = String(d.getMonth() + 1).padStart(2, '0');
+            const rd = String(d.getDate()).padStart(2, '0');
+            return `${ry}-${rm}-${rd}`;
         };
 
-        // データ取得・保存 (1行も削らないポリシー)
-        const getTasks = () => JSON.parse(localStorage.getItem('myTasks') || '[]');
-        const getTodos = () => JSON.parse(localStorage.getItem('myTodos') || '[]');
-        const getCards = () => JSON.parse(localStorage.getItem('myCards') || '[]');
-        
-        function saveAll(tasks, todos, cards) {
+        const showToast = (msg) => {
+            const b = document.getElementById('toastBanner');
+            b.innerText = msg;
+            b.classList.add('active');
+            setTimeout(() => b.classList.remove('active'), 3500);
+        };
+
+        const getLabelForIdx = (idx) => {
+            if (idx === 0) return "";
+            return ` (${idx}回目)`;
+        };
+
+        // --- データ管理（完全維持） ---
+        const getTasks = () => JSON.parse(localStorage.getItem('myTasks')) || [];
+        const getTodos = () => JSON.parse(localStorage.getItem('myTodos')) || [];
+        const getMemo = () => localStorage.getItem('myMemo') || "";
+
+        function calculateAndSyncStats(tasks) {
+            let doneDatesSet = new Set();
+            tasks.forEach(t => {
+                if (t.doneDates) {
+                    t.doneDates.forEach(d => doneDatesSet.add(d));
+                }
+            });
+            const today = getTodayStr();
+            const total = doneDatesSet.size;
+            let streak = 0;
+            let checkDate = doneDatesSet.has(today) ? today : addDays(today, -1);
+            while (doneDatesSet.has(checkDate)) {
+                streak++;
+                checkDate = addDays(checkDate, -1);
+            }
+            const stats = { total, streak, lastDate: today };
+            localStorage.setItem('myStats', JSON.stringify(stats));
+            return stats;
+        }
+
+        async function saveAll(tasks, todos) {
+            const stats = calculateAndSyncStats(tasks);
+            const memoText = document.getElementById('memoInput').value;
             localStorage.setItem('myTasks', JSON.stringify(tasks));
             localStorage.setItem('myTodos', JSON.stringify(todos));
-            if (cards) localStorage.setItem('myCards', JSON.stringify(cards));
-            
+            localStorage.setItem('myMemo', memoText);
+            if (currentUser) {
+                try { 
+                    await db.collection("users").doc(currentUser.uid).set({ 
+                        tasks, todos, stats, memo: memoText 
+                    }, { merge: true }); 
+                } 
+                catch (e) { console.error("Firebase Sync Error:", e); }
+            }
             renderUI();
             if (calendar) calendar.refetchEvents();
-
-            if (currentUser) {
-                db.collection("users").doc(currentUser.uid).set({
-                    tasks, todos, cards: cards || getCards(),
-                    memo: document.getElementById('memoInput').value,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-            }
-        }
-
-        // --- ToDo機能 (index (21).html) ---
-        function addTodo() {
-            const val = document.getElementById('todoInput').value.trim();
-            if (!val) return;
-            const todos = getTodos();
-            todos.push({ id: Date.now().toString(), name: val, completed: false });
-            saveAll(getTasks(), todos);
-            document.getElementById('todoInput').value = "";
-        }
-
-        function addDirectDone() {
-            const val = document.getElementById('todoInput').value.trim();
-            if (!val) return;
-            const tasks = getTasks();
-            const todos = getTodos();
-            const today = getTodayStr();
-            const id = Date.now().toString();
-            
-            todos.push({ id, name: val, completed: true });
-            const intervals = [0, 1, 4, 11, 25, 55];
-            const reviews = intervals.map(days => addDays(today, days));
-            tasks.push({ id, name: val, reviews, doneDates: [today], startDate: today });
-            
-            saveAll(tasks, todos);
-            document.getElementById('todoInput').value = "";
-            showToast("実績として保存しました");
-        }
-
-        function completeTodo(id) {
-            const todos = getTodos();
-            const tasks = getTasks();
-            const t = todos.find(x => x.id === id);
-            if (!t) return;
-            t.completed = true;
-            const today = getTodayStr();
-            const intervals = [0, 1, 4, 11, 25, 55];
-            const reviews = intervals.map(days => addDays(today, days));
-            tasks.push({ id: t.id, name: t.name, reviews, doneDates: [today], startDate: today });
-            saveAll(tasks, todos);
-            showToast("完了！復習スケジュールを作成しました");
-        }
-
-        function doneReview(id, date) {
-            const tasks = getTasks();
-            const t = tasks.find(x => x.id === id);
-            if (!t) return;
-            if (!t.doneDates) t.doneDates = [];
-            if (!t.doneDates.includes(date)) t.doneDates.push(date);
-            saveAll(tasks, getTodos());
-            showToast("復習を記録しました");
-        }
-
-        /* ==========================================
-           4. SRSテストロジック (増築分：1行も削らず)
-           ========================================== */
-        async function handleImgPreview(input, previewId, urlId) {
-            const file = input.files[0];
-            if (!file) return;
-            const preview = document.getElementById(previewId);
-            preview.src = URL.createObjectURL(file);
-            preview.style.display = 'block';
-            
-            if (currentUser) {
-                showToast("画像をアップロード中...");
-                const ref = storage.ref(`users/${currentUser.uid}/${Date.now()}_${file.name}`);
-                const snap = await ref.put(file);
-                document.getElementById(urlId).value = await snap.ref.getDownloadURL();
-                showToast("アップロード完了");
-            }
-        }
-
-        function addFlashcard() {
-            const q = document.getElementById('cardQ').value.trim();
-            const a = document.getElementById('cardA').value.trim();
-            const qImg = document.getElementById('urlQ').value;
-            const aImg = document.getElementById('urlA').value;
-            const tags = document.getElementById('cardTags').value.split(',').map(t => t.trim()).filter(t => t);
-
-            if (!q && !qImg) return alert("問題を入力してください");
-
-            const cards = getCards();
-            cards.push({
-                id: Date.now().toString(),
-                q, a, qImg, aImg, tags,
-                nextReview: getTodayStr(),
-                interval: 0,
-                history: []
-            });
-
-            saveAll(getTasks(), getTodos(), cards);
-            
-            // フォームリセット
-            ['cardQ', 'cardA', 'urlQ', 'urlA', 'cardTags'].forEach(id => document.getElementById(id).value = "");
-            ['previewQ', 'previewA'].forEach(id => document.getElementById(id).style.display = 'none');
-            showToast("カードを保存しました");
-        }
-
-        function startSession(mode, tag = null) {
-            const cards = getCards();
-            const today = getTodayStr();
-            
-            if (mode === 'today') {
-                testSession = cards.filter(c => c.nextReview <= today);
-            } else if (mode === 'random') {
-                testSession = [...cards].sort(() => 0.5 - Math.random()).slice(0, 10);
-            } else if (tag) {
-                testSession = cards.filter(c => c.tags.includes(tag));
-            }
-
-            if (testSession.length === 0) return alert("テスト対象のカードがありません");
-            
-            currentTestIdx = 0;
-            document.getElementById('testOverlay').style.display = 'flex';
-            showTest();
-        }
-
-        function showTest() {
-            const card = testSession[currentTestIdx];
-            document.getElementById('testProgress').innerText = `${currentTestIdx + 1} / ${testSession.length}`;
-            
-            // 画面リセット
-            document.getElementById('answerSection').style.display = 'none';
-            document.getElementById('showAnswerBtn').style.display = 'block';
-            
-            // 問題表示
-            document.getElementById('displayTextQ').innerText = card.q || "";
-            const imgQ = document.getElementById('displayImgQ');
-            if (card.qImg) { imgQ.src = card.qImg; imgQ.style.display = 'block'; } else { imgQ.style.display = 'none'; }
-            
-            // 解答準備
-            document.getElementById('displayTextA').innerText = card.a || "(解答なし)";
-            const imgA = document.getElementById('displayImgA');
-            if (card.aImg) { imgA.src = card.aImg; imgA.style.display = 'block'; } else { imgA.style.display = 'none'; }
-        }
-
-        function revealAnswer() {
-            document.getElementById('answerSection').style.display = 'block';
-            document.getElementById('showAnswerBtn').style.display = 'none';
-        }
-
-        function submitJudge(judge) {
-            const card = testSession[currentTestIdx];
-            const cards = getCards();
-            const target = cards.find(c => c.id === card.id);
-            const today = getTodayStr();
-
-            let nextDays = 1;
-            if (judge === 'again') nextDays = 0;
-            else if (judge === 'hard') nextDays = (target.interval || 1) * 1 + 1;
-            else if (judge === 'good') nextDays = (target.interval || 1) * 2 + 1;
-            else if (judge === 'easy') nextDays = (target.interval || 1) * 4 + 2;
-
-            if (nextDays > 150) nextDays = 150;
-
-            target.nextReview = addDays(today, nextDays);
-            target.interval = nextDays;
-            target.history.push({ date: today, judge });
-
-            saveAll(getTasks(), getTodos(), cards);
-
-            currentTestIdx++;
-            if (currentTestIdx < testSession.length) {
-                showTest();
-            } else {
-                alert("全てのテストが完了しました！");
-                closeTest();
-            }
-        }
-
-        function closeTest() {
-            document.getElementById('testOverlay').style.display = 'none';
-        }
-
-        /* ==========================================
-           5. UIレンダリング & ライフサイクル
-           ========================================== */
-        function renderUI() {
-            const tasks = getTasks();
-            const todos = getTodos();
-            const cards = getCards();
-            const today = getTodayStr();
-
-            // 統計計算
-            const doneSet = new Set();
-            tasks.forEach(t => t.doneDates?.forEach(d => doneSet.add(d)));
-            document.getElementById('totalDone').innerText = tasks.reduce((acc, t) => acc + (t.doneDates?.length || 0), 0);
-            
-            let streak = 0;
-            let check = today;
-            while(doneSet.has(check)) { streak++; check = addDays(check, -1); }
-            document.getElementById('streakCount').innerText = streak;
-
-            // ToDoリスト
-            const todoList = document.getElementById('todoList');
-            todoList.innerHTML = todos.filter(t => !t.completed).map(t => `
-                <div class="task-item todo-item">
-                    <span>${t.name}</span>
-                    <div class="button-group">
-                        <button class="btn-done" onclick="completeTodo('${t.id}')">完了</button>
-                        <button class="btn-delete" onclick="deleteItem('${t.id}', 'todo')">削除</button>
-                    </div>
-                </div>
-            `).join('') || '<p style="text-align:center; color:#999; font-size:0.8rem;">ToDoはありません</p>';
-
-            // 今日のテストエリア
-            const dueCards = cards.filter(c => c.nextReview <= today);
-            const testActionArea = document.getElementById('testActionArea');
-            if (dueCards.length > 0) {
-                testActionArea.innerHTML = `<button class="btn-done" style="width:100%; background:var(--test-color);" onclick="startSession('today')">🔥 今日の復習を開始 (${dueCards.length}枚)</button>`;
-            } else {
-                testActionArea.innerHTML = `<p style="text-align:center; color:#999; font-size:0.8rem;">本日のテストはありません</p>`;
-            }
-
-            // 復習タスク
-            const reviewList = document.getElementById('todayReviewList');
-            const todayReviews = [];
-            tasks.forEach(t => {
-                t.reviews.forEach((d, idx) => {
-                    if (d === today && (!t.doneDates || !t.doneDates.includes(d))) {
-                        todayReviews.push({ ...t, currentReviewDate: d, reviewIdx: idx });
-                    }
-                });
-            });
-            reviewList.innerHTML = todayReviews.map(t => `
-                <div class="task-item review-item">
-                    <span onclick="openEdit('${t.id}', '${t.currentReviewDate}', ${t.reviewIdx})" style="cursor:pointer">
-                        ${t.name} <small style="color:#888;">(第${t.reviewIdx+1}回)</small>
-                    </span>
-                    <button class="btn-done" onclick="doneReview('${t.id}', '${t.currentReviewDate}')">完了</button>
-                </div>
-            `).join('') || '<p style="text-align:center; color:#999; font-size:0.8rem;">今日の復習はありません</p>';
-
-            // タグ統計
-            const tagStats = document.getElementById('tagStats');
-            const tagMap = {};
-            cards.forEach(c => c.tags.forEach(tag => tagMap[tag] = (tagMap[tag] || 0) + 1));
-            tagStats.innerHTML = Object.entries(tagMap).map(([tag, count]) => `
-                <button class="btn-delete" style="background:#4a90e2; margin-bottom:5px;" onclick="startSession('tag', '${tag}')">#${tag} (${count})</button>
-            `).join(' ');
-        }
-
-        // --- モーダル・UI操作 ---
-        function toggleElement(id) {
-            const el = document.getElementById(id);
-            el.style.display = el.style.display === 'block' ? 'none' : 'block';
         }
 
         function toggleMemo() {
-            const area = document.getElementById('memoContainer');
+            const container = document.getElementById('memoContainer');
             const arrow = document.getElementById('memoArrow');
-            if (area.style.display === 'block') {
-                area.style.display = 'none';
+            if (container.style.display === 'block') {
+                container.style.display = 'none';
                 arrow.innerText = '▼';
             } else {
-                area.style.display = 'block';
+                container.style.display = 'block';
                 arrow.innerText = '▲';
             }
         }
 
-        function showToast(msg) {
-            const b = document.getElementById('toastBanner');
-            b.innerText = msg;
-            b.classList.add('active');
-            setTimeout(() => b.classList.remove('active'), 2500);
+        function executeSlide(task, newTargetDate, reviewIdx) {
+            const oldDate = task.reviews[reviewIdx];
+            const d1 = new Date(newTargetDate + "T00:00:00");
+            const d2 = new Date(oldDate + "T00:00:00");
+            const diff = Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
+            task.reviews = task.reviews.map((d, i) => {
+                if (i >= reviewIdx) {
+                    return addDays(d, diff);
+                }
+                return d;
+            });
+            return task;
         }
 
-        function openEdit(taskId, date, idx) {
-            const t = getTasks().find(x => x.id === taskId);
-            currentModalData = { type: 'task', taskId, date, idx };
-            document.getElementById('modalTitle').innerText = "復習の編集";
-            document.getElementById('modalName').value = t.name;
-            document.getElementById('modalDate').value = date;
-            document.getElementById('taskModal').style.display = 'flex';
+        // --- アクション ---
+        function addTodo() {
+            const input = document.getElementById('todoInput');
+            const val = input.value.trim();
+            if (!val) return;
+            const todos = getTodos();
+            const tasks = getTasks();
+            todos.push({ id: Date.now(), name: val, date: getTodayStr(), completed: false });
+            saveAll(tasks, todos);
+            input.value = "";
+        }
+
+        function completeTodo(id) {
+            const today = getTodayStr();
+            let todos = getTodos();
+            let tasks = getTasks();
+            let item = todos.find(t => t.id === id);
+            if (!item || item.completed) return;
+
+            // 復習サイクル生成ロジック（当日登録の実績化にも流用）
+            const intervals = [0, 1, 4, 11, 25, 55];
+            const reviews = intervals.map(days => addDays(today, days));
+            const newTasks = [...tasks, { 
+                id: item.id, 
+                name: item.name, 
+                reviews: reviews, 
+                doneDates: [today], 
+                startDate: today 
+            }];
+            item.completed = true;
+            saveAll(newTasks, todos);
+        }
+
+        function completeReview(id) {
+            const today = getTodayStr();
+            let tasks = getTasks();
+            let todos = getTodos();
+            let t = tasks.find(x => x.id === id);
+            if (!t) return;
+            if (t.doneDates && t.doneDates.includes(today)) return;
+            if (!t.doneDates) t.doneDates = [];
+            t.doneDates.push(today);
+            saveAll(tasks, todos);
+        }
+
+        // --- UIレンダリング（復習タスクにクリックイベントを丁寧に統合） ---
+        function renderUI() {
+            const today = getTodayStr();
+            const tasks = getTasks();
+            const todos = getTodos();
+            const stats = JSON.parse(localStorage.getItem('myStats')) || { total: 0, streak: 0 };
+            
+            const todoContainer = document.getElementById('todoList');
+            const filteredTodos = todos.filter(t => !t.completed && t.date === today);
+            if (filteredTodos.length === 0) {
+                todoContainer.innerHTML = '<p style="text-align:center; color:#ccc; font-size:0.8rem;">なし</p>';
+            } else {
+                todoContainer.innerHTML = filteredTodos.map(t => `
+                    <div class="task-item todo-item">
+                        <span>${t.name}</span>
+                        <div class="button-group">
+                            <button class="btn-delete" onclick="saveAll(getTasks(), getTodos().filter(x=>x.id!==${t.id}))">削</button>
+                            <button class="btn-done" onclick="completeTodo(${t.id})">完了</button>
+                        </div>
+                    </div>`).join('');
+            }
+            
+            const reviewContainer = document.getElementById('todayReviewList');
+            const filteredReviews = tasks.filter(t => 
+                t.reviews.includes(today) && 
+                !(t.doneDates && t.doneDates.includes(today)) && 
+                t.startDate !== today
+            );
+            if (filteredReviews.length === 0) {
+                reviewContainer.innerHTML = '<p style="text-align:center; color:#ccc; font-size:0.8rem;">なし</p>';
+            } else {
+                // 指示：復習タスクのテキストクリックで編集モーダルを開く（統合）
+                reviewContainer.innerHTML = filteredReviews.map(t => {
+                    const rIdx = t.reviews.indexOf(today);
+                    return `
+                        <div class="task-item review-item">
+                            <span style="cursor:pointer; flex:1;" onclick="openEditFromReviewList(${t.id}, '${today}', ${rIdx})">${t.name}${getLabelForIdx(rIdx)}</span>
+                            <button class="btn-done" onclick="completeReview(${t.id})">完了</button>
+                        </div>`;
+                }).join('');
+            }
+
+            document.getElementById('streakCount').innerText = stats.streak;
+            document.getElementById('totalDone').innerText = stats.total;
         }
 
         function closeModal() {
             document.getElementById('taskModal').style.display = 'none';
         }
 
-        function deleteItem(id, type) {
-            if (type === 'todo') {
-                const todos = getTodos().filter(x => x.id !== id);
-                saveAll(getTasks(), todos);
-            }
-        }
+        // --- 保存ボタンロジック（当日登録の実績化アップグレード） ---
+        document.getElementById('saveModalBtn').onclick = () => {
+            const name = document.getElementById('modalTaskName').value;
+            const today = getTodayStr();
+            if (!name) return;
+            let tasks = getTasks();
+            let todos = getTodos();
 
-        // --- カレンダー初期化 (index (21).html 完全維持) ---
-        window.onload = () => {
-            const calEl = document.getElementById('calendar');
-            calendar = new FullCalendar.Calendar(calEl, {
-                initialView: 'dayGridMonth',
-                headerToolbar: { left: 'prev', center: 'title', right: 'next today' },
+            if (currentModalData.mode === 'new') {
+                const targetDate = currentModalData.date;
+                if (targetDate > today) {
+                    // 未来：予約機能維持
+                    todos.push({ id: Date.now(), name: name, date: targetDate, completed: false });
+                    const d = new Date(targetDate + "T00:00:00");
+                    showToast(`${d.getMonth()+1}月${d.getDate()}日のToDoに予約しました`);
+                } else if (targetDate === today) {
+                    // 指示：当日登録の場合、ToDoを作らず直接実績化ロジックへ分岐（合流）
+                    const tempId = Date.now();
+                    const intervals = [0, 1, 4, 11, 25, 55];
+                    const reviews = intervals.map(days => addDays(today, days));
+                    tasks.push({ 
+                        id: tempId, 
+                        name: name, 
+                        reviews: reviews, 
+                        doneDates: [today], 
+                        startDate: today 
+                    });
+                    // カレンダー上に完了状態で残すため、完了済みToDoとしても追加（合流）
+                    todos.push({ id: tempId, name: name, date: today, completed: true });
+                } else {
+                    // 過去：過去登録機能維持
+                    const intervals = [0, 1, 4, 11, 25, 55];
+                    const reviews = intervals.map(days => addDays(targetDate, days));
+                    const autoDoneDates = reviews.filter(d => d < today);
+                    tasks.push({ 
+                        id: Date.now(), 
+                        name: name, 
+                        reviews: reviews, 
+                        doneDates: autoDoneDates, 
+                        startDate: targetDate 
+                    });
+                }
+            } else if (currentModalData.type === 'task') {
+                let t = tasks.find(x => x.id === currentModalData.taskId);
+                if (t) {
+                    t.name = name;
+                    const newDate = document.getElementById('modalTaskDate').value;
+                    executeSlide(t, newDate, currentModalData.idx);
+                }
+            } else if (currentModalData.type === 'todo') {
+                let t = todos.find(x => x.id === currentModalData.id);
+                if (t) {
+                    t.name = name;
+                    t.date = document.getElementById('modalTaskDate').value;
+                }
+            }
+            saveAll(tasks, todos);
+            closeModal();
+        };
+
+        // --- 削除ロジック（完全維持） ---
+        document.getElementById('deleteGroupBtn').onclick = () => {
+            if (!confirm("クリックしたグループを削除しますか？")) return;
+            let tasks = getTasks();
+            let todos = getTodos();
+
+            if (currentModalData.type === 'todo') {
+                const newTodos = todos.filter(t => t.id !== currentModalData.id);
+                saveAll(tasks, newTodos);
+            } else if (currentModalData.type === 'task') {
+                let t = tasks.find(x => x.id === currentModalData.taskId);
+                if (t) {
+                    if (currentModalData.done) {
+                        const newTasks = tasks.filter(x => x.id !== t.id);
+                        saveAll(newTasks, todos);
+                    } else {
+                        t.reviews = t.reviews.filter((d, i) => {
+                            return (t.doneDates && t.doneDates.includes(d));
+                        });
+                        if (t.reviews.length === 0) {
+                            const newTasks = tasks.filter(x => x.id !== t.id);
+                            saveAll(newTasks, todos);
+                        } else {
+                            saveAll(tasks, todos);
+                        }
+                    }
+                }
+            }
+            closeModal();
+        };
+
+        // --- 初期化 & カレンダー設定（完全維持） ---
+        window.addEventListener('load', () => {
+            const memoArea = document.getElementById('memoInput');
+            memoArea.value = getMemo();
+            memoArea.addEventListener('input', () => {
+                const tasks = getTasks();
+                const todos = getTodos();
+                saveAll(tasks, todos);
+            });
+
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridTwoWeeks',
                 locale: 'ja',
                 height: 'auto',
+                firstDay: 1,
+                headerToolbar: {
+                    left: 'prev',
+                    center: 'title',
+                    right: 'next today'
+                },
+                titleFormat: (info) => {
+                    const start = info.start.marker;
+                    const end = new Date(info.end.marker.getTime() - 86400000);
+                    const format = (d) => `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+                    return `${format(start)} - ${format(end)}`;
+                },
+                views: {
+                    dayGridTwoWeeks: {
+                        type: 'dayGrid',
+                        duration: { weeks: 2 }
+                    }
+                },
                 events: (info, success) => {
                     const tasks = getTasks();
-                    const evs = [];
+                    const todos = getTodos();
+                    const taskEvents = [];
                     tasks.forEach(t => {
-                        t.reviews.forEach((d, idx) => {
-                            const isDone = t.doneDates?.includes(d);
-                            evs.push({
-                                id: t.id,
-                                title: (isDone ? "✅ " : "") + t.name,
+                        t.reviews.forEach((d, i) => {
+                            const isDone = (t.doneDates && t.doneDates.includes(d));
+                            if (i === 0 && d === t.startDate && isDone) return;
+                            taskEvents.push({
+                                title: t.name + getLabelForIdx(i),
                                 start: d,
-                                color: isDone ? '#2ecc71' : '#4a90e2',
-                                extendedProps: { date: d, idx }
+                                backgroundColor: isDone ? '#f2f4f7' : '#4a90e2',
+                                textColor: isDone ? '#999' : '#fff',
+                                borderColor: 'transparent',
+                                extendedProps: { taskId: t.id, idx: i, type: 'task', done: isDone }
                             });
                         });
                     });
-                    success(evs);
+                    const todoEvents = todos.map(t => ({
+                        title: t.name,
+                        start: t.date,
+                        backgroundColor: t.completed ? '#f2f4f7' : '#f39c12',
+                        textColor: t.completed ? '#999' : '#fff',
+                        borderColor: 'transparent',
+                        extendedProps: { id: t.id, type: 'todo', done: t.completed }
+                    }));
+                    success([...taskEvents, ...todoEvents]);
+                },
+                dateClick: (info) => {
+                    currentModalData = { mode: 'new', date: info.dateStr };
+                    document.getElementById('modalTitle').innerText = "新規作成 (" + info.dateStr + ")";
+                    document.getElementById('modalTaskName').value = "";
+                    document.getElementById('editOnlyArea').style.display = 'none';
+                    document.getElementById('taskModal').style.display = 'flex';
                 },
                 eventClick: (info) => {
-                    openEdit(info.event.id, info.event.extendedProps.date, info.event.extendedProps.idx);
+                    const props = info.event.extendedProps;
+                    currentModalData = { mode: 'edit', ...props };
+                    document.getElementById('modalTitle').innerText = "編集・削除";
+                    const cleanName = info.event.title.replace(/\s\(\d+回目\)$/, "");
+                    document.getElementById('modalTaskName').value = cleanName;
+                    document.getElementById('modalTaskDate').value = info.event.startStr;
+                    document.getElementById('editOnlyArea').style.display = 'block';
+                    document.getElementById('taskModal').style.display = 'flex';
+                },
+                datesSet: () => {
+                    const titleEl = document.querySelector('.fc-toolbar-title');
+                    if (titleEl && !titleEl.onclick) {
+                        titleEl.onclick = () => {
+                            vIdx = (vIdx + 1) % vModes.length;
+                            calendar.changeView(vModes[vIdx]);
+                        };
+                    }
                 }
             });
             calendar.render();
 
-            // タイトルクリックでビュー変更 (独自仕様)
-            document.querySelector('.fc-toolbar-title').onclick = () => {
-                const views = ['dayGridMonth', 'dayGridWeek', 'listMonth'];
-                const current = calendar.view.type;
-                const next = views[(views.indexOf(current) + 1) % views.length];
-                calendar.changeView(next);
-            };
+            const today = getTodayStr();
+            let ts = getTasks();
+            let td = getTodos();
+            let changed = false;
+            td.forEach(t => {
+                if (!t.completed && t.date < today) {
+                    t.date = today;
+                    changed = true;
+                }
+            });
+            ts.forEach(t => {
+                const overdueIdx = t.reviews.findIndex(d => d < today && !(t.doneDates && t.doneDates.includes(d)));
+                if (overdueIdx !== -1) {
+                    executeSlide(t, today, overdueIdx);
+                    changed = true;
+                }
+            });
+            if (changed) {
+                saveAll(ts, td);
+            } else {
+                renderUI();
+            }
+        });
 
-            renderUI();
-            
-            // 自動保存
-            document.getElementById('memoInput').oninput = () => {
-                localStorage.setItem('myMemo', document.getElementById('memoInput').value);
-                if (currentUser) saveAll(getTasks(), getTodos());
-            };
-        };
-
-        // --- Firebase Auth 連携 ---
-        auth.onAuthStateChanged(user => {
-            currentUser = user;
+        // --- Firebase同期（完全維持） ---
+        auth.onAuthStateChanged(user => { 
+            currentUser = user; 
             document.getElementById('loginBtn').innerText = user ? "✅ 同期中" : "☁️ ログイン";
-            if (user) syncCloud();
+            if (user) syncCloud(); 
         });
 
         async function handleAuth() {
             if (currentUser) {
-                if (confirm("ログアウトしますか？")) await auth.signOut();
+                if (confirm("ログアウト？")) await auth.signOut();
             } else {
                 await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
             }
@@ -955,32 +571,73 @@
             const doc = await db.collection("users").doc(currentUser.uid).get();
             if (doc.exists) {
                 const d = doc.data();
-                document.getElementById('memoInput').value = d.memo || "";
-                saveAll(d.tasks || [], d.todos || [], d.cards || []);
+                const tasks = d.tasks || [];
+                const todos = d.todos || [];
+                const memo = d.memo || ""; 
+                localStorage.setItem('myTasks', JSON.stringify(tasks));
+                localStorage.setItem('myTodos', JSON.stringify(todos));
+                localStorage.setItem('myMemo', memo);
+                document.getElementById('memoInput').value = memo;
+                saveAll(tasks, todos);
             }
         }
 
-        // モーダル内削除ボタン
-        document.getElementById('deleteBtn').onclick = () => {
-            if (confirm("このシリーズ全ての予定を削除しますか？")) {
-                const tasks = getTasks().filter(x => x.id !== currentModalData.taskId);
-                saveAll(tasks, getTodos());
-                closeModal();
-            }
-        };
+        // ================================================================
+        // 【物理的追加セクション】指示された新ロジックを既存を削らずに追記
+        // ================================================================
 
-        // モーダル保存ボタン
-        document.getElementById('saveBtn').onclick = () => {
+        // 1. 直に実績を記録できる「完了」ボタン用の新規関数（統合）
+        function addDirectDone() {
+            const input = document.getElementById('todoInput');
+            const val = input.value.trim();
+            if (!val) return;
+            const today = getTodayStr();
+            const tempId = Date.now();
+            const todos = getTodos();
             const tasks = getTasks();
-            const t = tasks.find(x => x.id === currentModalData.taskId);
-            t.name = document.getElementById('modalName').value;
-            t.reviews[currentModalData.idx] = document.getElementById('modalDate').value;
-            saveAll(tasks, getTodos());
-            closeModal();
-        };
 
-        function startRandomTest() { startSession('random'); }
+            // ToDoリストに完了状態で追加（カレンダー表示用）
+            todos.push({ id: tempId, name: val, date: today, completed: true });
+            
+            // 実績化（復習サイクル生成）ロジックを統合
+            const intervals = [0, 1, 4, 11, 25, 55];
+            const reviews = intervals.map(days => addDays(today, days));
+            tasks.push({ 
+                id: tempId, 
+                name: val, 
+                reviews: reviews, 
+                doneDates: [today], 
+                startDate: today 
+            });
+
+            saveAll(tasks, todos);
+            input.value = "";
+        }
+
+        // 2. 復習タスクリストから編集モーダルを開くための関数（カレンダー機能と統合）
+        function openEditFromReviewList(taskId, date, idx) {
+            const tasks = getTasks();
+            const t = tasks.find(x => x.id === taskId);
+            if (!t) return;
+            
+            const isDone = (t.doneDates && t.doneDates.includes(date));
+            // カレンダーのeventClickと同等のデータ構造を合流させる
+            currentModalData = { 
+                mode: 'edit', 
+                type: 'task', 
+                taskId: taskId, 
+                idx: idx, 
+                done: isDone 
+            };
+            
+            document.getElementById('modalTitle').innerText = "編集・削除";
+            document.getElementById('modalTaskName').value = t.name;
+            document.getElementById('modalTaskDate').value = date;
+            document.getElementById('editOnlyArea').style.display = 'block';
+            document.getElementById('taskModal').style.display = 'flex';
+        }
 
     </script>
 </body>
 </html>
+
