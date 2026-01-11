@@ -123,7 +123,25 @@
             </div>
         </div>
     </div>
-
+<div class="modal-overlay" id="authModal">
+        <div class="modal-content">
+            <h3 id="authModalTitle" style="margin:0;">ログイン設定</h3>
+            <p style="font-size:0.8rem; color:#666; margin-bottom:15px;">
+                IDとパスワードを決めて、データを保存・復元できます。<br>
+                <small>※個人情報は不要です</small>
+            </p>
+            <label>ユーザーID (英数字):</label>
+            <input type="text" id="authUserId" placeholder="例: yamada123">
+            <label>パスワード (6文字以上):</label>
+            <input type="password" id="authPassword" placeholder="******" style="width:100%; margin-top:5px; padding:12px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+            
+            <div class="modal-footer">
+                <button style="background:var(--primary-color); color:white;" onclick="processAuth('register')">このIDでデータを保存 (新規/紐付)</button>
+                <button style="background:#2c3e50; color:white;" onclick="processAuth('login')">既存IDでログイン (復元)</button>
+                <button style="background:#eee;" onclick="closeAuthModal()">閉じる</button>
+            </div>
+        </div>
+    </div>
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyAP51tb-FcRmc1RukwczxfxzUdOkE7yf4g",
@@ -529,17 +547,81 @@
             }
         });
 
+const DUMMY_DOMAIN = "@my-study-app.local"; 
+
         auth.onAuthStateChanged(user => { 
             currentUser = user; 
-            document.getElementById('loginBtn').innerText = user ? "✅ 同期中" : "☁️ ログイン";
-            if (user) syncCloud(); 
+            if (user) {
+                const statusText = user.isAnonymous ? "👤 ゲスト (保存する)" : "✅ " + user.email.replace(DUMMY_DOMAIN, "");
+                document.getElementById('loginBtn').innerText = statusText;
+                syncCloud(); 
+            } else {
+                document.getElementById('loginBtn').innerText = "☁️ 接続中...";
+                auth.signInAnonymously().catch(e => console.error(e));
+            }
         });
 
         async function handleAuth() {
             if (currentUser) {
-                if (confirm("ログアウト？")) await auth.signOut();
+                if (currentUser.isAnonymous) {
+                    openAuthModal("データ保存（アカウント設定）");
+                } else {
+                    if (confirm("ログアウトして終了しますか？")) {
+                        await auth.signOut();
+                        window.location.reload();
+                    }
+                }
             } else {
-                await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+                openAuthModal("ログイン / 新規スタート");
+            }
+        }
+
+        function openAuthModal(title) {
+            document.getElementById('authModalTitle').innerText = title;
+            document.getElementById('authUserId').value = "";
+            document.getElementById('authPassword').value = "";
+            document.getElementById('authModal').style.display = 'flex';
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+        }
+
+        async function processAuth(mode) {
+            const userId = document.getElementById('authUserId').value.trim();
+            const pass = document.getElementById('authPassword').value.trim();
+
+            if (!userId || pass.length < 6) {
+                alert("IDは必須、パスワードは6文字以上で入力してください");
+                return;
+            }
+
+            const dummyEmail = userId + DUMMY_DOMAIN;
+            
+            try {
+                if (mode === 'login') {
+                    await auth.signInWithEmailAndPassword(dummyEmail, pass);
+                    showToast("ログインしました");
+                } else {
+                    if (currentUser && currentUser.isAnonymous) {
+                        const cred = firebase.auth.EmailAuthProvider.credential(dummyEmail, pass);
+                        await currentUser.linkWithCredential(cred);
+                        showToast("データをアカウントに保存しました！");
+                    } else {
+                        await auth.createUserWithEmailAndPassword(dummyEmail, pass);
+                        showToast("新規アカウントを作成しました");
+                    }
+                }
+                closeAuthModal();
+                renderUI();
+            } catch (error) {
+                console.error(error);
+                let msg = "エラーが発生しました";
+                if (error.code === 'auth/email-already-in-use') msg = "そのIDは既に使用されています。";
+                if (error.code === 'auth/wrong-password') msg = "パスワードが違います。";
+                if (error.code === 'auth/user-not-found') msg = "そのIDは見つかりません。";
+                if (error.code === 'auth/credential-already-in-use') msg = "そのIDは既に別のアカウントで使われています。";
+                alert(msg);
             }
         }
 
@@ -607,3 +689,4 @@
     </script>
 </body>
 </html>
+
