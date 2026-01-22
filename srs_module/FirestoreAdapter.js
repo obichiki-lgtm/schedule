@@ -45,3 +45,22 @@ export async function updateCard(userId, cardId, updates, reviewLog) {
         });
     }
 }
+//...既存のコードの下に追記...
+
+/**
+ * 新しいカードを追加する（テスト用・本番用共通）
+ */
+export async function addCard(userId, deckId, frontText, backText) {
+    const cardsRef = collection(db, `users/${userId}/cards`);
+    await addDoc(cardsRef, {
+        deckId: deckId,
+        front: frontText,
+        back: backText,
+        state: 'new',       // 新規カードとして登録
+        due: Date.now(),    // すぐに学習可能にする
+        interval: 0,
+        ease: 2.5,
+        lapses: 0,
+        stepIndex: 0
+    });
+}
