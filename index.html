@@ -129,7 +129,7 @@
         <div class="modal-content">
             <h3 id="authModalTitle" style="margin:0;">ログイン設定</h3>
             <p style="font-size:0.8rem; color:#666; margin-bottom:15px;">
-                IDとパスワードを決めて、データを保存・復元できます。<br>
+                IDとパスワードを決めて、データを保存できます。<br>
                 <small>※個人情報は入力しないでください</small>
             </p>
             <label>ユーザーID (英数字):</label>
@@ -138,8 +138,8 @@
             <input type="password" id="authPassword" placeholder="******" style="width:100%; margin-top:5px; padding:12px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
             
             <div class="modal-footer">
-                <button style="background:var(--primary-color); color:white;" onclick="processAuth('register')">このIDでデータを保存 </button>
-                <button style="background:#2c3e50; color:white;" onclick="processAuth('login')">既存IDでログイン</button>
+                <button style="background:var(--primary-color); color:white;" onclick="processAuth('register')">このIDで登録する </button>
+                <button style="background:#2c3e50; color:white;" onclick="processAuth('login')">登録したIDでログイン</button>
                 <button style="background:#eee;" onclick="closeAuthModal()">閉じる</button>
             </div>
         </div>
@@ -761,6 +761,7 @@ const DUMMY_DOMAIN = "@my-study-app.local";
 </body> </html>
 </body>
 </html>
+
 
 
 
