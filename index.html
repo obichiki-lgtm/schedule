@@ -20,7 +20,7 @@
         }
 
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; display: flex; justify-content: center; }
-        .container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 500px; box-sizing: border-box; position: relative; }
+        .container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 1000px; box-sizing: border-box; position: relative; }
         
         .auth-header { display: flex; justify-content: flex-end; margin-bottom: 5px; }
         #loginBtn { background: #eee; border: none; padding: 6px 14px; border-radius: 20px; font-size: 11px; cursor: pointer; color: #666; font-weight: bold; }
@@ -278,7 +278,7 @@
             let item = todos.find(t => t.id === id);
             if (!item || item.completed) return;
 
-            const intervals = [0, 1, 4, 11, 25, 55];
+            const intervals = [0, 1, 4, 11, 29, 74, 187];
             const reviews = intervals.map(days => addDays(today, days));
             const newTasks = [...tasks, { 
                 id: item.id, 
@@ -366,7 +366,7 @@
                     showToast(`${d.getMonth()+1}月${d.getDate()}日のToDoに予約しました`);
                 } else if (targetDate === today) {
                     const tempId = Date.now();
-                    const intervals = [0, 1, 4, 11, 25, 55];
+                    const intervals = [0, 1, 4, 11, 29, 74, 187];
                     const reviews = intervals.map(days => addDays(today, days));
                     tasks.push({ 
                         id: tempId, 
@@ -377,7 +377,7 @@
                     });
                     todos.push({ id: tempId, name: name, date: today, completed: true });
                 } else {
-                    const intervals = [0, 1, 4, 11, 25, 55];
+                    const intervals = [0, 1, 4, 11, 29, 74, 187];
                     const reviews = intervals.map(days => addDays(targetDate, days));
                     const autoDoneDates = reviews.filter(d => d < today);
                     tasks.push({ 
@@ -653,7 +653,7 @@ const DUMMY_DOMAIN = "@my-study-app.local";
 
             todos.push({ id: tempId, name: val, date: today, completed: true });
             
-            const intervals = [0, 1, 4, 11, 25, 55];
+            const intervals = [0, 1, 4, 11, 29, 74, 187];
             const reviews = intervals.map(days => addDays(today, days));
             tasks.push({ 
                 id: tempId, 
@@ -761,6 +761,7 @@ const DUMMY_DOMAIN = "@my-study-app.local";
 </body> </html>
 </body>
 </html>
+
 
 
 
